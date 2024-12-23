@@ -23,10 +23,10 @@ int main(void)
 
     while(true) {
         GPIO_set_output(pin13, false);
-        delay_ms(1000);
+        delay_us(500);
 
         GPIO_set_output(pin13, true);
-        delay_ms(1000);
+        delay_us(500);
     }
     return 0;
 }
