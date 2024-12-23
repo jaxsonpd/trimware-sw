@@ -1,0 +1,12 @@
+{
+    "cmake.configureOnOpen": false,
+    "cmake.sourceDirectory": ["${workspaceFolder}/target", "${workspaceFolder}/tests"],
+    "cmake.pinnedCommands": [
+        "cmake.selectLaunchTarget"
+    ],
+    "cmake.preferredGenerators": ["Unix Makefiles"],
+    "files.associations": {
+        "*.h": "c",
+        "string_view": "c"
+    }
+}

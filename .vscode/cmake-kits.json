@@ -1,0 +1,6 @@
+[
+    {
+        "name": "ATMEGA328p",
+        "toolchainFile": "${workspaceFolder}/target/cmake/atmega328p.cmake"
+    }
+]

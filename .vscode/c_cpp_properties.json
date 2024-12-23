@@ -1,0 +1,33 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x64"
+        },
+        {
+            "name": "AVR",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/avr-gcc",
+            "cStandard": "c11",
+            "cppStandard": "gnu++11",
+            "intelliSenseMode": "linux-gcc-x64",
+            "compilerArgs": [
+                "-Os ",
+                "-DF_CPU=16000000UL ",
+                "-mmcu=atmega328p ",
+                "-c"
+            ]
+        }
+    ],
+    "version": 4
+}
