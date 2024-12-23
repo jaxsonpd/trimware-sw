@@ -21,16 +21,15 @@ void delay_s(uint32_t delay) {
 }
 
 void delay_ms(uint32_t delay) {
-    volatile uint32_t count = (delay * F_CPU) / 6000UL; // IDK how this works 
-    while (count--) {
-        __asm__ __volatile__("nop");
+    for (uint32_t i = 0; i < delay; i++) {
+        _delay_ms(1);
     }
 }
 
 void delay_us(uint32_t delay) {
-    volatile uint64_t count = (delay * F_CPU) / 19000000UL; // IDK how this works 
-    while (count--) {
-        __asm__ __volatile__("nop");
+    for (uint32_t i = 0; i < delay; i++)
+    {
+        _delay_us(1);
     }
     
 }
