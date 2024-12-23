@@ -33,7 +33,7 @@ void GPIO_set_output(pin_t pin, bool value) {
     if (value) {
         *(volatile uint8_t*)PINBANK(pin) |= (1 << PINNUM(pin));
     } else {
-        *(volatile uint8_t*)PINBANK(pin) |= ~(1 << PINNUM(pin));
+        *(volatile uint8_t*)PINBANK(pin) &= ~(1 << PINNUM(pin));
     }
 }
 
