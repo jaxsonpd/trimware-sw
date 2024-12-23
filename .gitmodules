@@ -1,0 +1,3 @@
+[submodule "target/libs/avr-extends"]
+	path = target/libs/avr-extends
+	url = https://github.com/jaxsonpd/avr-extends
