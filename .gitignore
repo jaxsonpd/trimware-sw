@@ -33,3 +33,5 @@
 build/
 
 *.pyc
+
+driver-rust/target/
