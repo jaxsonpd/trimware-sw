@@ -1,12 +1,19 @@
 {
     "cmake.configureOnOpen": false,
-    "cmake.sourceDirectory": ["${workspaceFolder}/device/target", "${workspaceFolder}/device/tests"],
+    "cmake.sourceDirectory": [
+        "${workspaceFolder}/device/target",
+        "${workspaceFolder}/device/tests"
+    ],
     "cmake.pinnedCommands": [
         "cmake.selectLaunchTarget"
     ],
-    "cmake.preferredGenerators": ["Unix Makefiles"],
+    "cmake.testPath": "${workspaceFolder}/device/tests",
+    "cmake.preferredGenerators": [
+        "Unix Makefiles"
+    ],
     "files.associations": {
         "*.h": "c",
         "string_view": "c"
-    }
+    },
+    "testing.showAllMessages": true
 }
