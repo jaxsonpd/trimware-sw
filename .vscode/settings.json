@@ -1,6 +1,6 @@
 {
     "cmake.configureOnOpen": false,
-    "cmake.sourceDirectory": ["${workspaceFolder}/target", "${workspaceFolder}/tests"],
+    "cmake.sourceDirectory": ["${workspaceFolder}/device/target", "${workspaceFolder}/device/tests"],
     "cmake.pinnedCommands": [
         "cmake.selectLaunchTarget"
     ],

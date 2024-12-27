@@ -14,7 +14,8 @@
         {
             "name": "AVR",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/device/target/libs/avr-extends/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/avr-gcc",

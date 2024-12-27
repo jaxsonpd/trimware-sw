@@ -1,5 +1,5 @@
 
-/** 
+/**
  * @file main.c
  * @author Jack Duignan (JackpDuignan@gmail.com)
  * @date 2024-12-23
@@ -15,13 +15,12 @@
 #include "avr_extends/delay.h"
 
 
-int main(void)
-{
+int main(void) {
     pin_t pin13 = PIN(PORTB, 5);
 
     GPIO_pin_init(pin13, OUTPUT);
 
-    while(true) {
+    while (true) {
         GPIO_set_output(pin13, false);
         delay_us(500);
 
