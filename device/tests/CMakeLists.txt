@@ -3,7 +3,7 @@ set(MOCKS_DIR ./mocks)
 # set(AVR_EXTENDS_DIR ../target/libs/avr-extends)
 
 cmake_minimum_required(VERSION 3.22 FATAL_ERROR)
-project(radioSoftwareTests LANGUAGES C)
+project(RadioSoftwareTests LANGUAGES C)
 
 enable_testing()
 add_subdirectory(unity)

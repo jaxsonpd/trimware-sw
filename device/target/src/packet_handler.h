@@ -1,4 +1,4 @@
-/** 
+/**
  * @file packet_decoder.h
  * @author Jack Duignan (JackpDuignan@gmail.com)
  * @date 2024-12-27
@@ -19,16 +19,16 @@ typedef enum packetValidationStatus_e {
     PACKET_LENGTH_ERROR,
     PACKET_CMD_ERROR,
     PACKET_CRC_ERROR,
-    PACKET_FRAMING_ERROR,
+    PACKET_SCHEMA_ERROR,
 } packetStatus_t;
 
-/** 
+/**
  * @brief Check if the packet is valid
  * @param packetBuffer the packet string
- * 
+ *
  * @return the packet status
  */
-packetStatus_t packet_validate(char* packetBuffer);
+packetStatus_t packet_validate(uint8_t* packetBuffer);
 
 
 #endif // PACKET_DECODER_H

@@ -26,9 +26,10 @@ stream/faster CPU was available then CBOR is a better solution.
 | - | - | - |
 | 0x01 | Update Frequencies | Driver-MCU |
 | 0x02 | Encoder adjustment data | MCU to Driver |
-| 0x03 | Button states | MCU to Driver |
+| 0x03 | Freq swap button state | MCU to Driver |
 | 0x04 | Rotary switch state | MCU to Driver |
 | 0x05 | LED Toggle | MCU to Driver |
+| 0xFE | re-send last command | both |
 | 0xFF | Heartbeat (keep-alive) | Both |
 
 ### Frequency Update
