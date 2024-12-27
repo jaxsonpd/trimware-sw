@@ -1,3 +1,3 @@
-[submodule "device/target/lib/avr-extends"]
-	path = device/target/lib/avr-extends
-	url = git@github.com:jaxsonpd/avr-extends.git
+[submodule "device/target/libs/avr-extends"]
+	path = device/target/libs/avr-extends
+	url = https://github.com/jaxsonpd/avr-extends.git
