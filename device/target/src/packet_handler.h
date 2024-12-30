@@ -30,5 +30,17 @@ typedef enum packetValidationStatus_e {
  */
 packetStatus_t packet_validate(uint8_t* packetBuffer);
 
+/** 
+ * @brief Compile a packet to send
+ * @param packetBuf a pointer of the location to store the packet
+ * @param payloadBuf the payload to send
+ * @param payloadLength the length of the payload
+ * @param commandByte the command byte to send
+ * 
+ * @return the status of the packet should mainly be schema errors
+ * due to using reserved bytes for command or length
+ */
+packetState_t packet_compile(uint8_t* packetBuf, uint8_t* payloadBuf, uint8_t payloadLength, packetIdentifier_t packetIdent);
+
 
 #endif // PACKET_DECODER_H

@@ -75,9 +75,7 @@ packetStatus_t packet_validate(uint8_t* packetBuffer) {
             break;
 
         case PACKET_LENGTH_BYTE:
-            if (byte == PACKET_START_BYTE || byte == PACKET_END_BYTE) {
-                return PACKET_SCHEMA_ERROR;
-            } else if (currentByte != 2) {
+            if (currentByte != 2) {
                 return PACKET_SCHEMA_ERROR;
             } else {
                 state = PACKET_DATA_BYTES;
@@ -89,8 +87,7 @@ packetStatus_t packet_validate(uint8_t* packetBuffer) {
         case PACKET_DATA_BYTES:
             for (uint8_t i = 0; i < packetLength; i++) {
                 if (packetBuffer[currentByte+i] == PACKET_END_BYTE 
-                    || packetBuffer[currentByte+i] == PACKET_START_BYTE
-                    || packetBuffer[currentByte+i] == 0) {
+                    || packetBuffer[currentByte+i] == PACKET_START_BYTE) {
                         return PACKET_LENGTH_ERROR;
                 }
             }
@@ -134,6 +131,11 @@ packetStatus_t packet_validate(uint8_t* packetBuffer) {
     if (state != PACKET_COMPLETE) {
         return PACKET_SCHEMA_ERROR;
     }
+
+    return PACKET_VALID;
+}
+
+packetState_t packet_compile(uint8_t* packetBuf, uint8_t* payloadBuf, uint8_t payloadLength, packetIdentifier_t packetIdent) {
 
     return PACKET_VALID;
 }

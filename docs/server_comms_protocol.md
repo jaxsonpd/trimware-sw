@@ -94,4 +94,4 @@ CRC:             0x6789
 
 ### CRC
 
-Use the CR-16 Checksum with the 0x8005 polynomial.
+Use the CR-16 Checksum with the 0x1021 polynomial.
