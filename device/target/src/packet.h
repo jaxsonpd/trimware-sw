@@ -18,6 +18,8 @@
 
 #define PACKET_CRC_LENGTH 0x02
 
+#define PACKET_CRC_POLYNOMIAL 0x1021
+
 enum packetByteLocations_e {
     PACKET_IDENTIFIER_LOC = 0x01,
     PACKET_LENGTH_LOC = 0x02,

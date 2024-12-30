@@ -60,19 +60,19 @@ void test_packet_validate_start_end_type_crc_returns_fail(void) {
     TEST_ASSERT_EQUAL(PACKET_LENGTH_ERROR, result);
 }
 
-void test_packet_validate_empty_packet_returns_fail(void) {
+void test_packet_validate_empty_packet_returns_valid(void) {
     char testPacket[7] = {0};
 
     testPacket[0] = PACKET_START_BYTE;
     testPacket[PACKET_IDENTIFIER_LOC] = PACKET_HEARTBEAT;
     testPacket[PACKET_LENGTH_LOC] = 0x00;
-    testPacket[3] = 0x10;
-    testPacket[4] = 0x12;    
+    testPacket[3] = 0xFF;
+    testPacket[4] = 0xFF;    
     testPacket[5] = PACKET_END_BYTE;
 
     packetStatus_t result = packet_validate(testPacket);
 
-    TEST_ASSERT_EQUAL(PACKET_SCHEMA_ERROR, result);
+    TEST_ASSERT_EQUAL(PACKET_VALID, result);
 }
 
 void test_packet_validate_full_packet_returns_valid(void) {
@@ -82,11 +82,27 @@ void test_packet_validate_full_packet_returns_valid(void) {
     testPacket[PACKET_IDENTIFIER_LOC] = PACKET_HEARTBEAT;
     testPacket[PACKET_LENGTH_LOC] = 0x01;
     testPacket[3] = 0x01;
-    testPacket[4] = 0x10;
-    testPacket[5] = 0x12;    
+    testPacket[4] = 0xF1;
+    testPacket[5] = 0xD1;    
     testPacket[6] = PACKET_END_BYTE;
 
     packetStatus_t result = packet_validate(testPacket);
 
     TEST_ASSERT_EQUAL(PACKET_VALID, result);
+}
+
+void test_packet_validate_full_packet_bad_crc_returns_fail(void) {
+    char testPacket[8] = {0};
+
+    testPacket[0] = PACKET_START_BYTE;
+    testPacket[PACKET_IDENTIFIER_LOC] = PACKET_HEARTBEAT;
+    testPacket[PACKET_LENGTH_LOC] = 0x01;
+    testPacket[3] = 0x01;
+    testPacket[4] = 0x00;
+    testPacket[5] = 0x00;    
+    testPacket[6] = PACKET_END_BYTE;
+
+    packetStatus_t result = packet_validate(testPacket);
+
+    TEST_ASSERT_EQUAL(PACKET_CRC_ERROR, result);
 }
