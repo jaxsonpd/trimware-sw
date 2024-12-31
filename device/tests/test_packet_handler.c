@@ -106,3 +106,59 @@ void test_packet_validate_full_packet_bad_crc_returns_fail(void) {
 
     TEST_ASSERT_EQUAL(PACKET_CRC_ERROR, result);
 }
+
+void test_packet_compile_errors_null_pointer(void) {
+    char* testPacketBuf = NULL;
+    char* testPayloadBuf = NULL;
+
+    packetStatus_t result = packet_compile(testPacketBuf, testPayloadBuf, 0, PACKET_UPDATE_FREQ);
+
+    TEST_ASSERT_EQUAL(PACKET_UNKOWN_ERROR, result);
+}
+
+void test_packet_compile_builds_empty_packet(void) {
+    char testPacketBuf[6] = {0};
+    char testPayloadBuf[] = {0};
+    char expectedPacket[] = {PACKET_START_BYTE, PACKET_UPDATE_FREQ, 0x00, 0xFF, 0xFF, PACKET_END_BYTE};
+    uint8_t packetLength = 0;
+    
+    packetStatus_t result = packet_compile(testPacketBuf, testPayloadBuf, packetLength, PACKET_UPDATE_FREQ);
+
+    TEST_ASSERT_EQUAL(PACKET_VALID, result);
+    TEST_ASSERT_EQUAL_CHAR_ARRAY(expectedPacket, testPacketBuf, 6);
+}
+
+void test_packet_compile_builds_empty_packet_null_payload(void) {
+    char testPacketBuf[6] = {0};
+    char* testPayloadBuf = NULL;
+    char expectedPacket[] = {PACKET_START_BYTE, PACKET_UPDATE_FREQ, 0x00, 0xFF, 0xFF, PACKET_END_BYTE};
+    uint8_t packetLength = 0;
+    
+    packetStatus_t result = packet_compile(testPacketBuf, testPayloadBuf, packetLength, PACKET_UPDATE_FREQ);
+
+    TEST_ASSERT_EQUAL(PACKET_VALID, result);
+    TEST_ASSERT_EQUAL_CHAR_ARRAY(expectedPacket, testPacketBuf, 6);
+}
+
+void test_packet_compile_builds_packet(void) {
+    char testPacketBuf[9] = {0};
+    char testPayloadBuf[] = {0x00, 0x01, 0x02};
+    char expectedPacket[] = {PACKET_START_BYTE, PACKET_UPDATE_FREQ, 0x03, 0x00, 0x01, 0x02, 0xDF, 0xEF, PACKET_END_BYTE};
+    uint8_t packetLength = 3;
+    
+    packetStatus_t result = packet_compile(testPacketBuf, testPayloadBuf, packetLength, PACKET_UPDATE_FREQ);
+
+    TEST_ASSERT_EQUAL(PACKET_VALID, result);
+    TEST_ASSERT_EQUAL_CHAR_ARRAY(expectedPacket, testPacketBuf, 9);
+}
+
+void test_packet_compile_builds_packet_null_payload_fails(void) {
+    char testPacketBuf[6] = {0};
+    char* testPayloadBuf = NULL;
+    char expectedPacket[] = {PACKET_START_BYTE, PACKET_UPDATE_FREQ, 0x00, 0xFF, 0xFF, PACKET_END_BYTE};
+    uint8_t packetLength = 5;
+    
+    packetStatus_t result = packet_compile(testPacketBuf, testPayloadBuf, packetLength, PACKET_UPDATE_FREQ);
+
+    TEST_ASSERT_EQUAL(PACKET_UNKOWN_ERROR, result);
+}

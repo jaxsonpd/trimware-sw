@@ -8,10 +8,11 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-
-#include "packet_handler.h"
+#include "stdlib.h"
 
 #include "packet.h"
+
+#include "packet_handler.h"
 
 typedef enum packetStates_e {
     START_BYTE,
@@ -135,7 +136,27 @@ packetStatus_t packet_validate(uint8_t* packetBuffer) {
     return PACKET_VALID;
 }
 
-packetState_t packet_compile(uint8_t* packetBuf, uint8_t* payloadBuf, uint8_t payloadLength, packetIdentifier_t packetIdent) {
+packetStatus_t packet_compile(uint8_t* packetBuf, uint8_t* payloadBuf, uint8_t payloadLength, packetIdentifier_t packetIdent) {
+    if (packetBuf == NULL) {
+        return PACKET_UNKOWN_ERROR;
+    } else if (payloadBuf == NULL && payloadLength > 0) {
+        return PACKET_UNKOWN_ERROR;
+    }
+
+    packetBuf[0] = PACKET_START_BYTE;
+    packetBuf[PACKET_IDENTIFIER_LOC] = packetIdent;
+    packetBuf[PACKET_LENGTH_LOC] = payloadLength;
+    for (uint16_t i = 0; i < payloadLength; i++)
+    {
+        packetBuf[PACKET_PAYLOAD_START_LOC+i] = payloadBuf[i];
+    }
+
+    uint16_t crc16 = calculate_crc16(payloadBuf, payloadLength);
+
+    packetBuf[PACKET_PAYLOAD_START_LOC+payloadLength] = crc16 >> 8 & 0xFF;
+    packetBuf[PACKET_PAYLOAD_START_LOC+payloadLength+1] = crc16 & 0xFF;
+
+    packetBuf[PACKET_PAYLOAD_START_LOC+payloadLength+2] = PACKET_END_BYTE;
 
     return PACKET_VALID;
 }

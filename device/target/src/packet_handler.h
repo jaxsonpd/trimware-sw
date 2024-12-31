@@ -14,12 +14,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include "packet.h"
+
 typedef enum packetValidationStatus_e {
     PACKET_VALID,
     PACKET_LENGTH_ERROR,
     PACKET_CMD_ERROR,
     PACKET_CRC_ERROR,
     PACKET_SCHEMA_ERROR,
+    PACKET_UNKOWN_ERROR,
 } packetStatus_t;
 
 /**
@@ -40,7 +43,7 @@ packetStatus_t packet_validate(uint8_t* packetBuffer);
  * @return the status of the packet should mainly be schema errors
  * due to using reserved bytes for command or length
  */
-packetState_t packet_compile(uint8_t* packetBuf, uint8_t* payloadBuf, uint8_t payloadLength, packetIdentifier_t packetIdent);
+packetStatus_t packet_compile(uint8_t* packetBuf, uint8_t* payloadBuf, uint8_t payloadLength, packetIdentifier_t packetIdent);
 
 
 #endif // PACKET_DECODER_H
