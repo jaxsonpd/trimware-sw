@@ -109,12 +109,8 @@ int main(void) {
 
         update_processes();
 
-        GPIO_set_output(pin13, false);
+        GPIO_toggle_output(pin13);
         delay_ms(500);
-
-        GPIO_set_output(pin13, true);
-        delay_ms(500);
-
     }
     return 0;
 }
