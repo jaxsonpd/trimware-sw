@@ -38,7 +38,7 @@ uint16_t getPacket(uint8_t* buffer) {
     int byte;
     bool packetStarted = false;
 
-    while ((byte = getchar()) != EOF) {
+    while ((UART_data_available() || packetStarted) && (byte = getchar()) != EOF) {
         uint8_t currentByte = (uint8_t)byte;
 
         if (currentByte == PACKET_START_BYTE && !packetStarted) {
@@ -101,7 +101,9 @@ int main(void) {
             
             if (debug) {
                 printf("Packet Length 0x%x ", inputLength);
-                print_packet(inputBuffer);
+                if (newPacket) {
+                    print_packet(inputBuffer);
+                }
                 printf("\n");
             }
         }
