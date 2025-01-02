@@ -15,6 +15,7 @@
 #include "process.h"
 
 #include "freq_info.h"
+#include "freq_display.h"
 
 #include "freq_process.h"
 
@@ -23,8 +24,9 @@
  * 
  * @return 0 if successful
  */
-int freq_display_init(void) {
+int freq_process_init(void) {
     printf("Initialising display driver\n");
+    freq_display_init();
     return 0;
 }
 
@@ -33,7 +35,7 @@ int freq_display_init(void) {
  * 
  * @return 0 if successful
  */
-int freq_display_update(void* params) {
+int freq_process_update(void* params) {
     // printf("Updating display driver\n");
     return 0;
 }
@@ -45,7 +47,7 @@ int freq_display_update(void* params) {
  *  
  * @return 0 if successful
  */
-int freq_display_process(uint8_t* payloadBuf, uint16_t length) {
+int freq_process_packet(uint8_t* payloadBuf, uint16_t length) {
     printf("Processing Display Driver\n");
     if (length != 12) {
         printf("ERROR: Frequency display packet wrong length. Got: 0x%x, expected: 12", length);
@@ -80,7 +82,7 @@ int freq_display_process(uint8_t* payloadBuf, uint16_t length) {
 
     printf("Active digit 1 0x%x\n", freq_digit(freq_info_get(ACTIVE_FREQ), 1));
 
-    
+    freq_display_write(ACTIVE_FREQ, freq_info_get(ACTIVE_FREQ));    
 
     return 0;
 }
@@ -89,9 +91,9 @@ process_t freqDisplayProcess = {
     .identifier = 0x00,
     .name = "Freq Display Process",
     .updatePeriod = 1,
-    .init = freq_display_init,
-    .update = freq_display_update,
-    .process_packet = freq_display_process
+    .init = freq_process_init,
+    .update = freq_process_update,
+    .process_packet = freq_process_packet
 };
 
 
