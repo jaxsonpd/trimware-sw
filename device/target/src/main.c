@@ -74,7 +74,7 @@ void setup(void) {
 void print_packet(uint8_t buffer[]) {
     uint16_t i = 0;
     do {
-        printf("0x%x", buffer[i]);
+        printf("0x%x ", buffer[i]);
     } while(buffer[i++] != PACKET_END_BYTE || i == 1);
 
 }
