@@ -14,6 +14,8 @@
 
 #include "process.h"
 
+#include "freq_info.h"
+
 #include "freq_display.h"
 
 /** 
@@ -45,6 +47,41 @@ int freq_display_update(void* params) {
  */
 int freq_display_process(uint8_t* payloadBuf, uint16_t length) {
     printf("Processing Display Driver\n");
+    if (length != 12) {
+        printf("ERROR: Frequency display packet wrong length. Got: 0x%x, expected: 12", length);
+        return 1;
+    }
+
+    // Get active frequency
+    uint32_t activeFrequency = 0;
+
+    for (int i = 0; i < 6; i++) {
+        if (payloadBuf[i] < '0' || payloadBuf[i] > '9') {
+            return 2; // Error: Non-digit character encountered
+        }
+        activeFrequency = (activeFrequency << 4) | (payloadBuf[i] - '0');
+    }
+
+    // Get standby frequency
+    uint32_t standbyFrequency = 0;
+
+    for (int i = 6; i < 12; i++) {
+        if (payloadBuf[i] < '0' || payloadBuf[i] > '9') {
+            return 2; // Error: Non-digit character encountered
+        }
+        standbyFrequency = (standbyFrequency << 4) | (payloadBuf[i] - '0');
+    }
+
+    freq_info_set(ACTIVE_FREQ, activeFrequency);
+    freq_info_set(STANDBY_FREQ, standbyFrequency);
+
+    printf("Extracted Frequencies, Active: %lx, Standby: %lx\n", freq_info_get(ACTIVE_FREQ),
+                freq_info_get(STANDBY_FREQ));
+
+    printf("Active digit 1 0x%x\n", freq_digit(freq_info_get(ACTIVE_FREQ), 1));
+
+    
+
     return 0;
 }
 
