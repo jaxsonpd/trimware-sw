@@ -80,8 +80,15 @@ void print_packet(uint8_t buffer[]) {
 }
 
 int main(void) {
-
     setup();
+
+    // while (true)
+    // {
+    //     GPIO_pin_init(PIN(PORTB, 2), INPUT_NO_PULLUP);
+    //     delay_ms(250);
+    //     printf("Result: 0x%x", GPIO_get_state(PIN(PORTB, 2)));
+    //     delay_ms(500);
+    // }
 
     // Storage for input from UART
     uint8_t inputBuffer[1024] = { 0 };
