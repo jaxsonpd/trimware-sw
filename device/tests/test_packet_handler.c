@@ -30,7 +30,7 @@ void tearDown(void) {
 void test_packet_validate_empty_returns_fail(void) {
     char* testPacket = "";
     
-    packetStatus_t result = packet_validate(testPacket);
+    packetStatus_t result = packet_validate(testPacket, 0);
 
     TEST_ASSERT_EQUAL(PACKET_SCHEMA_ERROR, result);
 }
@@ -41,7 +41,7 @@ void test_packet_validate_start_end_returns_fail(void) {
     testPacket[0] = PACKET_START_BYTE;
     testPacket[1] = PACKET_END_BYTE;
 
-    packetStatus_t result = packet_validate(testPacket);
+    packetStatus_t result = packet_validate(testPacket, 3);
 
     TEST_ASSERT_EQUAL(PACKET_SCHEMA_ERROR, result);
 }
@@ -55,7 +55,7 @@ void test_packet_validate_start_end_type_crc_returns_fail(void) {
     testPacket[3] = 0x12;
     testPacket[4] = PACKET_END_BYTE;
 
-    packetStatus_t result = packet_validate(testPacket);
+    packetStatus_t result = packet_validate(testPacket, 6);
 
     TEST_ASSERT_EQUAL(PACKET_LENGTH_ERROR, result);
 }
@@ -70,7 +70,7 @@ void test_packet_validate_empty_packet_returns_valid(void) {
     testPacket[4] = 0xFF;    
     testPacket[5] = PACKET_END_BYTE;
 
-    packetStatus_t result = packet_validate(testPacket);
+    packetStatus_t result = packet_validate(testPacket, 7);
 
     TEST_ASSERT_EQUAL(PACKET_VALID, result);
 }
@@ -86,7 +86,7 @@ void test_packet_validate_full_packet_returns_valid(void) {
     testPacket[5] = 0xD1;    
     testPacket[6] = PACKET_END_BYTE;
 
-    packetStatus_t result = packet_validate(testPacket);
+    packetStatus_t result = packet_validate(testPacket, 7);
 
     TEST_ASSERT_EQUAL(PACKET_VALID, result);
 }
@@ -102,7 +102,7 @@ void test_packet_validate_full_packet_bad_crc_returns_fail(void) {
     testPacket[5] = 0x00;    
     testPacket[6] = PACKET_END_BYTE;
 
-    packetStatus_t result = packet_validate(testPacket);
+    packetStatus_t result = packet_validate(testPacket, 7);
 
     TEST_ASSERT_EQUAL(PACKET_CRC_ERROR, result);
 }

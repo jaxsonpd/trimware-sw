@@ -16,7 +16,11 @@
 #define PACKET_START_BYTE 0x7E
 #define PACKET_END_BYTE 0x7E
 
-#define PACKET_CRC_LENGTH 0x02
+#define MIN_PACKET_LENGTH (uint8_t)6
+#define HEADER_SIZE (uint8_t)3
+#define FOOTER_SIZE (uint8_t)1
+
+#define CRC_LENGTH 0x02
 
 #define PACKET_CRC_POLYNOMIAL 0x1021
 

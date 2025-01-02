@@ -43,98 +43,87 @@ static uint16_t calculate_crc16(const uint8_t *data, uint16_t length) {
     return crc; // Return the computed CRC-16 value
 }
 
-packetStatus_t packet_validate(uint8_t* packetBuffer) {
-    uint8_t byte;
-    uint8_t currentByte = 0;
-    uint8_t packetLength = 0;
-
-    packetState_t state = START_BYTE;
-
-    while (currentByte < 128 && state != PACKET_COMPLETE) {
-        byte = packetBuffer[currentByte];
-        switch (state) {
-        case START_BYTE:
-            if (byte != PACKET_START_BYTE) {
-                return PACKET_SCHEMA_ERROR;
-            } else if (currentByte != 0) {
-                return PACKET_SCHEMA_ERROR;
-            } else {
-                state = CMD_BYTE;
-                currentByte++;
-            }
-            break;
-
-        case CMD_BYTE:
-            if (byte == PACKET_START_BYTE || byte == PACKET_END_BYTE) {
-                return PACKET_SCHEMA_ERROR;
-            } else if (currentByte != 1) {
-                return PACKET_SCHEMA_ERROR;
-            }else {
-                state = PACKET_LENGTH_BYTE;
-                currentByte++;
-            }
-            break;
-
-        case PACKET_LENGTH_BYTE:
-            if (currentByte != 2) {
-                return PACKET_SCHEMA_ERROR;
-            } else {
-                state = PACKET_DATA_BYTES;
-                packetLength = byte;
-                currentByte++;
-            }
-            break;
-
-        case PACKET_DATA_BYTES:
-            for (uint8_t i = 0; i < packetLength; i++) {
-                if (packetBuffer[currentByte+i] == PACKET_END_BYTE 
-                    || packetBuffer[currentByte+i] == PACKET_START_BYTE) {
-                        return PACKET_LENGTH_ERROR;
-                }
-            }
-
-            if (packetBuffer[currentByte+packetLength+2] != PACKET_END_BYTE) {
-                return PACKET_LENGTH_ERROR;
-            } else {
-                state = CRC_BYTES;
-                currentByte += packetLength;
-            }
-            break;
-
-        case CRC_BYTES:
-            ;;
-            uint16_t crc16 = calculate_crc16(&packetBuffer[PACKET_PAYLOAD_START_LOC], packetLength);
-            uint16_t receivedCrc16 = packetBuffer[currentByte] << 8 | packetBuffer[currentByte+1];
-
-            if (crc16 != receivedCrc16) {
-                return PACKET_CRC_ERROR;
-            } else {
-                state = END_BYTE;
-                currentByte += 2;
-            }
-
-            break;
-        
-        case END_BYTE:
-            if (byte != PACKET_END_BYTE) {
-                return PACKET_SCHEMA_ERROR;
-            } else {
-                state = PACKET_COMPLETE;
-                currentByte++;
-            }
-            break;
-
-        default:
-            return PACKET_SCHEMA_ERROR;
-            break;
-        }
-    }
-
-    if (state != PACKET_COMPLETE) {
+packetStatus_t packet_validate(uint8_t* packetBuffer, uint16_t bufferLength) {
+    if (bufferLength < MIN_PACKET_LENGTH) { // Ensure minimum length for a valid packet
         return PACKET_SCHEMA_ERROR;
     }
 
-    return PACKET_VALID;
+    uint16_t currentByte = 0;
+    uint16_t payloadLength = 0;
+    packetState_t state = START_BYTE;
+
+    while (currentByte < bufferLength && state != PACKET_COMPLETE) {
+        uint8_t byte = packetBuffer[currentByte];
+        
+        switch (state) {
+            case START_BYTE:
+                if (byte != PACKET_START_BYTE || currentByte != 0) {
+                    return PACKET_SCHEMA_ERROR;
+                }
+                state = CMD_BYTE;
+                currentByte++;
+                break;
+
+            case CMD_BYTE:
+                if (byte == PACKET_START_BYTE || byte == PACKET_END_BYTE || currentByte != 1) {
+                    return PACKET_SCHEMA_ERROR;
+                }
+                state = PACKET_LENGTH_BYTE;
+                currentByte++;
+                break;
+
+            case PACKET_LENGTH_BYTE:
+                if (currentByte != 2) {
+                    return PACKET_SCHEMA_ERROR;
+                }
+                payloadLength = byte;
+                if (payloadLength + HEADER_SIZE + CRC_LENGTH + FOOTER_SIZE > bufferLength) {
+                    return PACKET_LENGTH_ERROR;
+                }
+                state = PACKET_DATA_BYTES;
+                currentByte++;
+                break;
+
+            case PACKET_DATA_BYTES:
+                for (uint8_t i = 0; i < payloadLength; i++) {
+                    if (currentByte + i >= bufferLength || 
+                        packetBuffer[currentByte + i] == PACKET_START_BYTE || 
+                        packetBuffer[currentByte + i] == PACKET_END_BYTE) {
+                        return PACKET_LENGTH_ERROR;
+                    }
+                }
+                currentByte += payloadLength;
+                state = CRC_BYTES;
+                break;
+
+            case CRC_BYTES: {
+                if (currentByte + 2 > bufferLength) {
+                    return PACKET_SCHEMA_ERROR;
+                }
+                uint16_t crc16 = calculate_crc16(&packetBuffer[PACKET_PAYLOAD_START_LOC], payloadLength);
+                uint16_t receivedCrc16 = (packetBuffer[currentByte] << 8) | packetBuffer[currentByte + 1];
+                if (crc16 != receivedCrc16) {
+                    return PACKET_CRC_ERROR;
+                }
+                currentByte += 2;
+                state = END_BYTE;
+                break;
+            }
+
+            case END_BYTE:
+                if (byte != PACKET_END_BYTE) {
+                    return PACKET_SCHEMA_ERROR;
+                }
+                state = PACKET_COMPLETE;
+                currentByte++;
+                break;
+
+            default:
+                return PACKET_SCHEMA_ERROR;
+        }
+    }
+
+    return (state == PACKET_COMPLETE) ? PACKET_VALID : PACKET_SCHEMA_ERROR;
 }
 
 packetStatus_t packet_compile(uint8_t* packetBuf, uint8_t* payloadBuf, uint8_t payloadLength, packetIdentifier_t packetIdent) {

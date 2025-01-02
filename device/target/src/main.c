@@ -52,7 +52,7 @@ uint16_t getPacket(uint8_t* buffer) {
             buffer[bufferIndex++] = currentByte;
 
             if (currentByte == PACKET_END_BYTE) {
-                return --bufferIndex;
+                return bufferIndex;
             }
         }
     }
@@ -110,7 +110,7 @@ int main(void) {
 
         // Validate packet
         if (newPacket) {
-            validationStatus = packet_validate(inputBuffer);
+            validationStatus = packet_validate(inputBuffer, inputLength);
 
             if (validationStatus != PACKET_VALID) {
                 if (debug) {

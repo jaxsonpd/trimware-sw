@@ -28,10 +28,11 @@ typedef enum packetValidationStatus_e {
 /**
  * @brief Check if the packet is valid
  * @param packetBuffer the packet string
+ * @param bufferLength the length of the packet
  *
  * @return the packet status
  */
-packetStatus_t packet_validate(uint8_t* packetBuffer);
+packetStatus_t packet_validate(uint8_t* packetBuffer, uint16_t bufferLength);
 
 /** 
  * @brief Compile a packet to send
