@@ -14,7 +14,7 @@
 #include "process.h"
 #include "flags.h"
 
-#include "freq_display.h"
+#include "freq_process.h"
 
 #include "process_handler.h"
 

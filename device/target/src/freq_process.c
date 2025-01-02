@@ -16,7 +16,7 @@
 
 #include "freq_info.h"
 
-#include "freq_display.h"
+#include "freq_process.h"
 
 /** 
  * @brief Initialise the frequency display drivers
