@@ -19,8 +19,9 @@
 typedef struct Process {
     packetIdentifier_t identifier; // The byte identifier for the process
     char* name; // The name of the process
-    int (*process_packet)(char*, uint16_t); // A function to process an incoming packet
+    int (*process_packet)(uint8_t*, uint16_t); // A function to process an incoming packet
     int (*update)(void*); // The update function for the process called often
+    int (*init)(void); // Initialise the process
     uint64_t updatePeriod; // How often the process should be updated
 } process_t;
 

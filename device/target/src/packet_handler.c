@@ -102,6 +102,7 @@ packetStatus_t packet_validate(uint8_t* packetBuffer) {
             break;
 
         case CRC_BYTES:
+            ;;
             uint16_t crc16 = calculate_crc16(&packetBuffer[PACKET_PAYLOAD_START_LOC], packetLength);
             uint16_t receivedCrc16 = packetBuffer[currentByte] << 8 | packetBuffer[currentByte+1];
 

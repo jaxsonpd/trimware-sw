@@ -9,44 +9,66 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "process.h"
 #include "flags.h"
 
+#include "freq_display.h"
+
 #include "process_handler.h"
 
-const uint16_t numProcesses = 1;
-process_t processes[numProcesses] = { 0 };
+#define NUM_PROCESSES 1
+process_t *processes[NUM_PROCESSES] = { 0 };
 
+int init_processes(void) {
+    processes[0] = &freqDisplayProcess;
 
-int update_processes(void) {
-    int updateResult = 0;
-    for (uint16_t i = 0; i < numProcesses; i++) {
-        int result = processes[i].update(NULL);
+    int initResult = 0;
+    for (uint8_t i = 0; i < NUM_PROCESSES; i++) {
+        int result = processes[i]->init();
+
         if (result != 0) {
-            updateResult |= 1 << i;
+            initResult |= 1 << i;
         }
 
         if (debug) {
-            printf("Updating process: %s, result: 0x%x\n", processes[i].name, result);
+            printf("Initialising process: %s, result: 0x%x\n", processes[i]->name, result);
         }
+    }
+
+    return initResult;
+
+}
+
+int update_processes(void) {
+    int updateResult = 0;
+    for (uint16_t i = 0; i < NUM_PROCESSES; i++) {
+        int result = processes[i]->update(NULL);
+        if (result != 0) {
+            updateResult |= 1 << i;
+        }   
+
+        // if (debug) {
+        //     printf("Updating process: %s, result: 0x%x\n", processes[i]->name, result);
+        // }
 
     }
 
     return updateResult;
 }
 
-int execute_packet_process(uint8_t identifier, char* payloadBuffer, uint8_t payloadLength) {
+int execute_packet_process(uint8_t identifier, uint8_t* payloadBuffer, uint8_t payloadLength) {
     int processResult = 0;
     bool handled = false;
-    for (uint16_t i = 0; i < numProcesses; i++) {
-        if (processes[i].identifier == identifier) {
+    for (uint16_t i = 0; i < NUM_PROCESSES; i++) {
+        if (processes[i]->identifier == identifier) {
             handled = true;
-            processResult = processes[i].process_packet(payloadBuffer, payloadLength);
+            processResult = processes[i]->process_packet(payloadBuffer, payloadLength);
         }
 
         if (debug) {
-            printf("Executing process: %s, result: 0x%x\n", processes[i].name, processResult);
+            printf("Executing process: %s, result: 0x%x\n", processes[i]->name, processResult);
         }
     }
 

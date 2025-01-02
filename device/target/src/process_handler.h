@@ -14,6 +14,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/** 
+ * @brief Initialise the processes
+ * 
+ * @return 0 if successful
+ */
+int init_processes(void);
+
 /**
  * @brief Update all the processes on the device
  *
@@ -29,7 +36,7 @@ int update_processes(void);
  *
  * @return the result of processing and excuting the packet 0 if successful
  */
-int execute_packet_process(uint8_t identifier, char* payloadBuffer, uint8_t payloadLength);
+int execute_packet_process(uint8_t identifier, uint8_t* payloadBuffer, uint8_t payloadLength);
 
 
 #endif // PROCESS_HANDLER_H

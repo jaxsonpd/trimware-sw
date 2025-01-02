@@ -25,15 +25,15 @@ bool debug = true;
 
 pin_t pin13;
 
-/** 
+/**
  * @brief Read a packet from stdin
  * @param buffer a pointer to where to store the data
- * 
+ *
  * @return the length of the packet parsed
  */
 
-size_t getPacket(uint8_t *buffer) {
-    size_t bufferIndex = 0;
+uint16_t getPacket(uint8_t* buffer) {
+    uint16_t bufferIndex = 0;
 
     int byte;
     bool packetStarted = false;
@@ -41,7 +41,7 @@ size_t getPacket(uint8_t *buffer) {
     while ((byte = getchar()) != EOF) {
         uint8_t currentByte = (uint8_t)byte;
 
-        if (currentByte == PACKET_START_BYTE) {
+        if (currentByte == PACKET_START_BYTE && !packetStarted) {
             packetStarted = true;
             bufferIndex = 0;
             buffer[bufferIndex++] = currentByte;
@@ -52,35 +52,44 @@ size_t getPacket(uint8_t *buffer) {
             buffer[bufferIndex++] = currentByte;
 
             if (currentByte == PACKET_END_BYTE) {
-                // Found a complete packet
-                buffer[bufferIndex] = '\0'; // Null-terminate the string
-                return bufferIndex; // Return the size of the packet
+                return --bufferIndex;
             }
         }
     }
 
-    return 0; // Return 0 if no packet is found
+    return 0;
 }
 
 void setup(void) {
     pin13 = PIN(PORTB, 5);
     GPIO_pin_init(pin13, OUTPUT);
 
-    UART_init_stdio(9600);
-    printf("UART up and running");
+    UART_init_stdio(115200);
+    printf("UART up and running\n");
+    delay_ms(1000);
+
+    init_processes();
+}
+
+void print_packet(uint8_t buffer[]) {
+    uint16_t i = 0;
+    do {
+        printf("0x%x", buffer[i]);
+    } while(buffer[i++] != PACKET_END_BYTE || i == 1);
+
 }
 
 int main(void) {
-    
+
     setup();
 
-    // Storage from input from UART
-    uint8_t inputBuffer[1024] = {0};
+    // Storage for input from UART
+    uint8_t inputBuffer[1024] = { 0 };
     uint16_t inputLength = 0;
 
     // Flags
     bool newPacket = false;
-    
+
     // Results
     packetStatus_t validationStatus = PACKET_VALID;
 
@@ -89,28 +98,41 @@ int main(void) {
         if (UART_data_available()) {
             inputLength = getPacket(inputBuffer);
             newPacket = inputLength > 0;
+            
+            if (debug) {
+                printf("Packet Length 0x%x ", inputLength);
+                print_packet(inputBuffer);
+                printf("\n");
+            }
         }
 
         // Validate packet
         if (newPacket) {
             validationStatus = packet_validate(inputBuffer);
 
-            if (debug && validationStatus != PACKET_VALID) {
-                printf("ERROR: Last Packet invalid status: 0x%x\n", validationStatus);
+            if (validationStatus != PACKET_VALID) {
+                if (debug) {
+                    printf("ERROR: Last Packet invalid status: 0x%x, packet: %s\n", validationStatus, inputBuffer);
+                }
             }
         }
 
         // Use packet to update commands
         if (newPacket && validationStatus == PACKET_VALID) {
             execute_packet_process(inputBuffer[PACKET_IDENTIFIER_LOC],
-                                    inputBuffer[PACKET_PAYLOAD_START_LOC],
-                                    inputBuffer[PACKET_LENGTH_LOC]);
-        } 
+                &inputBuffer[PACKET_PAYLOAD_START_LOC],
+                inputBuffer[PACKET_LENGTH_LOC]);
+        }
+
+        for (uint16_t i = 0; i < 1024; i++) {
+            inputBuffer[i] = 0;
+        }
+        newPacket = false;
 
         update_processes();
 
         GPIO_toggle_output(pin13);
-        delay_ms(500);
+        // delay_ms(500);
     }
     return 0;
 }
