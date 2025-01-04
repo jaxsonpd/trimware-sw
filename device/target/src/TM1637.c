@@ -5,6 +5,7 @@
  * @brief Implementation for the TM1637 6 digit display module driver
  */
 
+// TODO: Invert byte order and make it work for common cathode.
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -87,6 +88,24 @@ static int get_ack(struct TM1637Device device) {
 int tm1637_init(struct TM1637Device device) {
     GPIO_pin_init(device.dataPin, INPUT_NO_PULLUP);
     GPIO_pin_init(device.clockPin, INPUT_NO_PULLUP);
+    
+    int result = 0;
+    send_start(device);
+    send_byte(device, DISPLAY_ON_10_16);
+    result = get_ack(device);
+    send_stop(device);
+    if (result != 0) {
+        printf("ERROR: Bad ack in display on setting error = 0x%x\n", result);
+    }
+    delay_ms(500);
+
+    send_start(device);
+    send_byte(device, SET_WRITE_FIX_ADDR_CMD);
+    result = get_ack(device);
+    send_stop(device);
+    if (result != 0) {
+        printf("ERROR: Bad ack in data command setting error = 0x%x\n", result);
+    }
 
     return 0;
 }
@@ -96,13 +115,6 @@ int tm1637_write(struct TM1637Device device, uint32_t value) {
 
     int result = 0;
 
-    send_start(device);
-    send_byte(device, SET_WRITE_FIX_ADDR_CMD);
-    result = get_ack(device);
-    send_stop(device);
-    if (result != 0) {
-        printf("ERROR: Bad ack in data command setting error = 0x%x\n", result);
-    }
 
     send_start(device);
     send_byte(device, C0H);
@@ -120,20 +132,28 @@ int tm1637_write(struct TM1637Device device, uint32_t value) {
     if (result != 0) {
         printf("ERROR: Bad ack in display write = 0x%x\n", result);
     }
-    send_byte(device, 0b00000000);
+    send_byte(device, 0b11111111);
+    result = get_ack(device);
+    if (result != 0) {
+        printf("ERROR: Bad ack in display write = 0x%x\n", result);
+    }
+    send_byte(device, 0b11111111);
+    result = get_ack(device);
+    if (result != 0) {
+        printf("ERROR: Bad ack in display write = 0x%x\n", result);
+    }
+    send_byte(device, 0b11111111);
+    result = get_ack(device);
+    if (result != 0) {
+        printf("ERROR: Bad ack in display write = 0x%x\n", result);
+    }
+    send_byte(device, 0b11111111);
     result = get_ack(device);
     if (result != 0) {
         printf("ERROR: Bad ack in display write = 0x%x\n", result);
     }
     send_stop(device);
 
-    send_start(device);
-    send_byte(device, DISPLAY_ON_10_16);
-    result = get_ack(device);
-    send_stop(device);
-    if (result != 0) {
-        printf("ERROR: Bad ack in display on setting error = 0x%x\n", result);
-    }
 
     printf("Completed write ack result = 0x%x\n", result);
 

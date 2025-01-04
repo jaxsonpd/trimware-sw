@@ -22,11 +22,11 @@ struct TM1637Device standbyDisplay = {
 };
 
 int freq_display_init(void) {
-    activeDisplay.clockPin = PIN(PORTB, 3);
-    activeDisplay.dataPin = PIN(PORTB, 2);
+    activeDisplay.clockPin = PIN(PORTB, 3); // Pin 11
+    activeDisplay.dataPin = PIN(PORTB, 2); // Pin 10
     
-    standbyDisplay.clockPin = PIN(PORTB, 1);
-    standbyDisplay.dataPin = PIN(PORTB, 0);
+    standbyDisplay.clockPin = PIN(PORTB, 1); // pin 9
+    standbyDisplay.dataPin = PIN(PORTB, 0); // pin 8
 
     int result = 0;
     result |= tm1637_init(activeDisplay);
