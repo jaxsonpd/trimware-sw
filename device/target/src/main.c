@@ -16,6 +16,9 @@
 #include "avr_extends/delay.h"
 #include "avr_extends/UART.h"
 
+#include "freq_input.h"
+#include "channel_select.h"
+
 #include "packet_handler.h"
 #include "process_handler.h"
 
@@ -68,7 +71,7 @@ void setup(void) {
     printf("UART up and running\n");
     delay_ms(1000);
 
-    init_processes();
+    // init_processes();
 }
 
 void print_packet(uint8_t buffer[]) {
@@ -82,6 +85,18 @@ void print_packet(uint8_t buffer[]) {
 int main(void) {
     setup();
 
+    freq_input_init();
+
+    channel_select_init();
+
+    while (true) {
+        int8_t fineValue = freq_input_get(FREQ_FINE_INPUT);
+        uint8_t selectedValue = channel_select_get();
+        printf("Selected Channel: %x\n", selectedValue);
+        delay_ms(100);
+    }
+    
+
     // while (true)
     // {
     //     GPIO_pin_init(PIN(PORTB, 2), INPUT_NO_PULLUP);
@@ -90,58 +105,58 @@ int main(void) {
     //     delay_ms(500);
     // }
 
-    // Storage for input from UART
-    uint8_t inputBuffer[1024] = { 0 };
-    uint16_t inputLength = 0;
+    // // Storage for input from UART
+    // uint8_t inputBuffer[1024] = { 0 };
+    // uint16_t inputLength = 0;
 
-    // Flags
-    bool newPacket = false;
+    // // Flags
+    // bool newPacket = false;
 
-    // Results
-    packetStatus_t validationStatus = PACKET_VALID;
+    // // Results
+    // packetStatus_t validationStatus = PACKET_VALID;
 
-    while (true) {
-        // Get packet from uart
-        if (UART_data_available()) {
-            inputLength = getPacket(inputBuffer);
-            newPacket = inputLength > 0;
+    // while (true) {
+    //     // Get packet from uart
+    //     if (UART_data_available()) {
+    //         inputLength = getPacket(inputBuffer);
+    //         newPacket = inputLength > 0;
             
-            if (debug) {
-                printf("Packet Length 0x%x ", inputLength);
-                if (newPacket) {
-                    print_packet(inputBuffer);
-                }
-                printf("\n");
-            }
-        }
+    //         if (debug) {
+    //             printf("Packet Length 0x%x ", inputLength);
+    //             if (newPacket) {
+    //                 print_packet(inputBuffer);
+    //             }
+    //             printf("\n");
+    //         }
+    //     }
 
-        // Validate packet
-        if (newPacket) {
-            validationStatus = packet_validate(inputBuffer, inputLength);
+    //     // Validate packet
+    //     if (newPacket) {
+    //         validationStatus = packet_validate(inputBuffer, inputLength);
 
-            if (validationStatus != PACKET_VALID) {
-                if (debug) {
-                    printf("ERROR: Last Packet invalid status: 0x%x, packet: %s\n", validationStatus, inputBuffer);
-                }
-            }
-        }
+    //         if (validationStatus != PACKET_VALID) {
+    //             if (debug) {
+    //                 printf("ERROR: Last Packet invalid status: 0x%x, packet: %s\n", validationStatus, inputBuffer);
+    //             }
+    //         }
+    //     }
 
-        // Use packet to update commands
-        if (newPacket && validationStatus == PACKET_VALID) {
-            execute_packet_process(inputBuffer[PACKET_IDENTIFIER_LOC],
-                &inputBuffer[PACKET_PAYLOAD_START_LOC],
-                inputBuffer[PACKET_LENGTH_LOC]);
-        }
+    //     // Use packet to update commands
+    //     if (newPacket && validationStatus == PACKET_VALID) {
+    //         execute_packet_process(inputBuffer[PACKET_IDENTIFIER_LOC],
+    //             &inputBuffer[PACKET_PAYLOAD_START_LOC],
+    //             inputBuffer[PACKET_LENGTH_LOC]);
+    //     }
 
-        for (uint16_t i = 0; i < 1024; i++) {
-            inputBuffer[i] = 0;
-        }
-        newPacket = false;
+    //     for (uint16_t i = 0; i < 1024; i++) {
+    //         inputBuffer[i] = 0;
+    //     }
+    //     newPacket = false;
 
-        update_processes();
+    //     update_processes();
 
-        GPIO_toggle_output(pin13);
-        // delay_ms(500);
-    }
-    return 0;
+    //     GPIO_toggle_output(pin13);
+    //     // delay_ms(500);
+    // }
+    // return 0;
 }
