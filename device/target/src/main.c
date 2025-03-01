@@ -18,7 +18,7 @@
 
 #include <avr/interrupt.h>
 
-#include "freq_input.h"
+#include "freq_info.h"
 #include "channel_select.h"
 
 #include "packet_handler.h"
@@ -88,15 +88,17 @@ int main(void) {
     setup();
     sei();
 
-    freq_input_init();
-
+    freq_info_init();
     channel_select_init();
 
     while (true) {
-        int8_t fineValue = freq_input_get(FREQ_FINE_INPUT);
+        freq_t standbyFreq = freq_info_get(STANDBY_FREQ);
+        freq_t activeFreq = freq_info_get(ACTIVE_FREQ);
+        freq_info_check_swap();
         uint8_t selectedValue = channel_select_get();
-        printf("Selected Channel: %x, Fine Change: %d\n", selectedValue, fineValue);
-        delay_ms(5000);
+        printf("Selected type: %x, Selected standby: %u.%03u, Selected active: %u.%03u\n", selectedValue, 
+            standbyFreq.freqMHz, standbyFreq.freqKHz, activeFreq.freqMHz, activeFreq.freqKHz);
+        delay_ms(100);
     }
     
 

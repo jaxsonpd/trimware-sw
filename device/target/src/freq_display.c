@@ -38,13 +38,13 @@ int freq_display_init(void) {
 int freq_display_write(freqType_t type, freq_t frequency) {
     int result = 0;
     switch (type) {
-    case ACTIVE_FREQ:
-        result = tm1637_write(activeDisplay, frequency);
-        break;
+    // case ACTIVE_FREQ:
+    //     result = tm1637_write(activeDisplay, frequency);
+    //     break;
     
-    case STANDBY_FREQ:
-        result = tm1637_write(standbyDisplay, frequency);
-        break;
+    // case STANDBY_FREQ:
+    //     result = tm1637_write(standbyDisplay, frequency);
+    //     break;
     
     default:
         result = 1;

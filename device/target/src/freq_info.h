@@ -1,56 +1,56 @@
 /** 
- * @file freq_info.h
+ * @file freq_handler.h
  * @author Jack Duignan (JackpDuignan@gmail.com)
- * @date 2025-01-02
- * @brief Declarations for the frequency storage abstraction
+ * @date 2025-03-01
+ * @brief Handle storage and conversion of frequency values
  */
 
 
-#ifndef FREQ_INFO_H
-#define FREQ_INFO_H
+#ifndef FREQ_HANDLER_H
+#define FREQ_HANDLER_H
 
 
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef enum FrequencyTypes_e {
-    ACTIVE_FREQ,
-    STANDBY_FREQ
+typedef struct FrequencyValue {
+    uint16_t freqMHz; // The megahertz portion of the frequency (3 digits)
+    uint16_t freqKHz; // The kilohertz portion of the frequency (3 digits)
+} freq_t;
+
+typedef enum PossibleFrequencies_e {
+    STANDBY_FREQ,
+    ACTIVE_FREQ
 } freqType_t;
 
-typedef uint32_t freq_t;
+/** 
+ * @brief Initialise the frequency handling module
+ * 
+ * @return 0 if successful
+ */
+int freq_info_init(void);
 
 /** 
- * @brief Get a digit from a frequency
- * @param frequency the frequency to process
- * @param digit the digit to get zero indexed MSB is 0
+ * @brief Get the current frequency
+ * @param freqType the frequency to get
  * 
- * @return the digit of the frequency as an 8 bit int
+ * @return a frequency struct with that current frequency
  */
-#define freq_digit(freq, digit) (uint8_t)((freq >> (4*(5-digit))) & 0xF)
+freq_t freq_info_get(freqType_t freqType);
 
 /** 
- * @brief Set the active frequency
- * @param type the frequency to set
- * @param frequency the new frequency to set encoded as each digit of a uint32_t
- * 
+ * @brief Set a frequency
+ * @param freqType the frequency to set
+ * @param freqValue the value to set
+ *
  */
-void freq_info_set(freqType_t type, freq_t frequency);
-
-/** 
- * @brief Get the frequency
- * @param type the frequency to set
- * 
- * @returns the frequency encoded as each digit of a uint32_t
- */
-freq_t freq_info_get(freqType_t type);
-
+void freq_info_set(freqType_t freqType, freq_t freqValue);
 
 /** 
  * @brief Swap the active and standby frequencies
  * 
  */
-void freq_info_swap(void);
+void freq_info_check_swap(void);
 
-#endif // FREQ_INFO_H
 
+#endif // FREQ_HANDLER_H
