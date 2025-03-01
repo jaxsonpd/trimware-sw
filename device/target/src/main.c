@@ -74,7 +74,7 @@ void setup(void) {
     GPIO_pin_init(pin13, OUTPUT);
 
     UART_init_stdio(115200);
-    printf("Radio 1 On\n");
+    printf("Radio: 1\n");
     delay_ms(1000);
 
     freq_info_init();
