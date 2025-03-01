@@ -117,21 +117,18 @@ int8_t freq_input_get(FreqInputSources_t input) {
     int8_t returnVal = 0;
     if (input == FREQ_FINE_INPUT) {
         returnVal = fineChange;
-        fineChange = 0;
     } else if (input == FREQ_COURSE_INPUT) {
         returnVal = coarseChange;
-        coarseChange = 0;
     }
 
-    if ((returnVal % STEPS_PER_CLICK) == 0) {
-        returnVal = returnVal / STEPS_PER_CLICK;
-    } else {
-        if (returnVal > 0) {
-            returnVal = (returnVal+1) / STEPS_PER_CLICK;
-        } else if (returnVal < 0) {
-            returnVal = (returnVal-1) / STEPS_PER_CLICK;
-        }
-    }   
+    returnVal = returnVal / STEPS_PER_CLICK;
+
+
+    if (input == FREQ_FINE_INPUT) {
+        fineChange = 0;
+    } else if (input == FREQ_COURSE_INPUT) {
+        coarseChange = 0;
+    }
 
     return returnVal;
 }
