@@ -117,8 +117,8 @@ int main(void) {
         freq_t activeFreq = freq_info_get(ACTIVE_FREQ);
         freq_info_check_swap();
 
-        printf("Standby Freq: %u.%03u, Active Freq: %u.%03u\n", standbyFreq.freqMHz
-           , standbyFreq.freqKHz, activeFreq.freqMHz, activeFreq.freqKHz);
+        // printf("Standby Freq: %u.%03u, Active Freq: %u.%03u\n", standbyFreq.freqMHz
+        //    , standbyFreq.freqKHz, activeFreq.freqMHz, activeFreq.freqKHz);
 
         if (standbyFreq_prev.freqKHz != standbyFreq.freqKHz || 
             standbyFreq_prev.freqMHz != standbyFreq.freqMHz ||
