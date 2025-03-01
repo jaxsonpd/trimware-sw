@@ -117,8 +117,8 @@ int main(void) {
         freq_t activeFreq = freq_info_get(ACTIVE_FREQ);
         freq_info_check_swap();
 
-        // printf("Standby Freq: %u.%03u, Active Freq: %u.%03u\n", standbyFreq.freqMHz
-        //    , standbyFreq.freqKHz, activeFreq.freqMHz, activeFreq.freqKHz);
+        printf("Standby Freq: %u.%03u, Active Freq: %u.%03u\n", standbyFreq.freqMHz
+           , standbyFreq.freqKHz, activeFreq.freqMHz, activeFreq.freqKHz);
 
         if (standbyFreq_prev.freqKHz != standbyFreq.freqKHz || 
             standbyFreq_prev.freqMHz != standbyFreq.freqMHz ||
@@ -127,7 +127,7 @@ int main(void) {
             uint8_t payloadBuf[128] = {0};
             uint8_t payloadSize = assemble_freq_payload(payloadBuf, standbyFreq, activeFreq);
             
-            packet_send(putchar, payloadBuf, payloadSize, 0x01);
+            // packet_send(putchar, payloadBuf, payloadSize, 0x01);
             standbyFreq_prev = standbyFreq;
             activeFreq_prev = activeFreq;
         }
