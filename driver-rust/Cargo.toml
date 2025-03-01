@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-msfs = "0.1.0"
+msfs = {git  = "https://github.com/flybywiresim/msfs-rs.git" }
 
 
+[target.wasm32-wasi]
+rustflags = [
+    "-Clink-arg=--export-table",
+    "-Clink-arg=--export=malloc",
+    "-Clink-arg=--export=free",
+]
