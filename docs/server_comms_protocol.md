@@ -35,46 +35,14 @@ stream/faster CPU was available then CBOR is a better solution.
 ### Frequency Update
 
 Command: Update frequencies
-Data: Current frequency 123450 and standby frequency 124250
+Data: Current frequency 108.450 and standby frequency 109.250
 
 ```yaml
 Start Byte:      0x7E
 Identifier:      0x01
 Payload Length:  6
-Payload:         [0x01, 0xE2, 0x40, 0x01, 0xE5, 0x02] (frequencies)
+Payload:         [0x01, 0x08, 0x01, 0xC2, 0x01, 0x09, 0x00, 0xFA] (frequencies)
 CRC:             0x1234
-```
-
-### Encoder Adjustment
-
-Command: Encoder adjustment
-Data: Fine adjustment +5, Coarse adjustment -3
-
-Packet Example:
-
-```yaml
-Copy code
-Start Byte:      0x7E
-Identifier:      0x02
-Payload Length:  2
-Payload:         [0x05, 0xFD] (fine=+5, coarse=-3)
-CRC:             0x5678
-```
-
-### Button States
-
-Command: Button state updates
-Data: Button 1 pressed, Button 2 not pressed
-
-Packet Example:
-
-```yaml
-Copy code
-Start Byte:      0x7E
-Identifier:      0x03
-Payload Length:  2
-Payload:         [0x01, 0x00] (buttons=[1, 0])
-CRC:             0x4321
 ```
 
 

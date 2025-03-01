@@ -18,13 +18,10 @@
 
 #include <avr/interrupt.h>
 
+#include "custom_can_protocol/packet_handler.h"
+
 #include "freq_info.h"
 #include "channel_select.h"
-
-#include "packet_handler.h"
-#include "process_handler.h"
-
-#include "flags.h"
 
 bool debug = true;
 
@@ -37,67 +34,109 @@ pin_t pin13;
  * @return the length of the packet parsed
  */
 
-uint16_t getPacket(uint8_t* buffer) {
-    uint16_t bufferIndex = 0;
+// uint16_t getPacket(uint8_t* buffer) {
+//     uint16_t bufferIndex = 0;
 
-    int byte;
-    bool packetStarted = false;
+//     int byte;
+//     bool packetStarted = false;
 
-    while ((UART_data_available() || packetStarted) && (byte = getchar()) != EOF) {
-        uint8_t currentByte = (uint8_t)byte;
+//     while ((UART_data_available() || packetStarted) && (byte = getchar()) != EOF) {
+//         uint8_t currentByte = (uint8_t)byte;
 
-        if (currentByte == PACKET_START_BYTE && !packetStarted) {
-            packetStarted = true;
-            bufferIndex = 0;
-            buffer[bufferIndex++] = currentByte;
-            continue;
-        }
+//         if (currentByte == PACKET_START_BYTE && !packetStarted) {
+//             packetStarted = true;
+//             bufferIndex = 0;
+//             buffer[bufferIndex++] = currentByte;
+//             continue;
+//         }
 
-        if (packetStarted) {
-            buffer[bufferIndex++] = currentByte;
+//         if (packetStarted) {
+//             buffer[bufferIndex++] = currentByte;
 
-            if (currentByte == PACKET_END_BYTE) {
-                return bufferIndex;
-            }
-        }
-    }
+//             if (currentByte == PACKET_END_BYTE) {
+//                 return bufferIndex;
+//             }
+//         }
+//     }
 
-    return 0;
-}
+//     return 0;
+// }
 
-void print_packet(uint8_t buffer[]) {
-    uint16_t i = 0;
-    do {
-        printf("0x%x ", buffer[i]);
-    } while(buffer[i++] != PACKET_END_BYTE || i == 1);
-
-}
+// void print_packet(uint8_t buffer[]) {
+//     uint16_t i = 0;
+//     do {
+//         printf("0x%x ", buffer[i]);
+//     } while(buffer[i++] != PACKET_END_BYTE || i == 1);
+// }
 
 void setup(void) {
     pin13 = PIN(PORTB, 5);
     GPIO_pin_init(pin13, OUTPUT);
 
     UART_init_stdio(115200);
-    printf("UART up and running\n");
+    printf("Radio 1 On\n");
     delay_ms(1000);
 
-    // init_processes();
+    freq_info_init();
+    channel_select_init();
+}
+
+/** 
+ * @brief Assemble a frequency packet
+ * @param buffer to store the assembled packet
+ * @param standbyFreq the standby frequency
+ * @param activeFreq the active frequency
+ * 
+ * @return the length of the assembled packet
+ */
+uint8_t assemble_freq_payload(uint8_t *buffer, freq_t standbyFreq, freq_t activeFreq) {
+    uint8_t bufferIndex = 0;
+
+    buffer[bufferIndex++] = (standbyFreq.freqMHz >> 8) & 0xFF;
+    buffer[bufferIndex++] = standbyFreq.freqMHz & 0xFF;
+    buffer[bufferIndex++] = (standbyFreq.freqKHz >> 8) & 0xFF;
+    buffer[bufferIndex++] = standbyFreq.freqKHz & 0xFF;
+    buffer[bufferIndex++] = (activeFreq.freqMHz >> 8) & 0xFF;
+    buffer[bufferIndex++] = activeFreq.freqMHz & 0xFF;
+    buffer[bufferIndex++] = (activeFreq.freqKHz >> 8) & 0xFF;
+    buffer[bufferIndex++] = activeFreq.freqKHz & 0xFF;
+
+    return bufferIndex;
 }
 
 int main(void) {
     setup();
     sei();
 
-    freq_info_init();
-    channel_select_init();
+    freq_t standbyFreq_prev = freq_info_get(STANDBY_FREQ);
+    freq_t activeFreq_prev = freq_info_get(ACTIVE_FREQ);
+    uint8_t selectedChannel_prev = channel_select_get();
 
     while (true) {
         freq_t standbyFreq = freq_info_get(STANDBY_FREQ);
         freq_t activeFreq = freq_info_get(ACTIVE_FREQ);
         freq_info_check_swap();
-        uint8_t selectedValue = channel_select_get();
-        printf("Selected type: %x, Selected standby: %u.%03u, Selected active: %u.%03u\n", selectedValue, 
-            standbyFreq.freqMHz, standbyFreq.freqKHz, activeFreq.freqMHz, activeFreq.freqKHz);
+
+        if (standbyFreq_prev.freqKHz != standbyFreq.freqKHz || 
+            standbyFreq_prev.freqMHz != standbyFreq.freqMHz ||
+            activeFreq_prev.freqKHz != activeFreq.freqKHz || 
+            activeFreq_prev.freqMHz != activeFreq.freqMHz) {
+            uint8_t payloadBuf[128] = {0};
+            uint8_t payloadSize = assemble_freq_payload(payloadBuf, standbyFreq, activeFreq);
+            
+            packet_send(putchar, payloadBuf, payloadSize, 0x01);
+            standbyFreq_prev = standbyFreq;
+            activeFreq_prev = activeFreq;
+        }
+
+        uint8_t selectedChannel = channel_select_get();
+        if (selectedChannel_prev != selectedChannel) {
+            uint8_t payloadBuf[1] = {selectedChannel};
+            packet_send(putchar, payloadBuf, 0x01, 0x04);
+
+            selectedChannel_prev = selectedChannel;
+        }
+        
         delay_ms(100);
     }
     

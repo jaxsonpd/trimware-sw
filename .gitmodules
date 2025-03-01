@@ -1,3 +1,6 @@
 [submodule "device/target/libs/avr-extends"]
 	path = device/target/libs/avr-extends
 	url = https://github.com/jaxsonpd/avr-extends.git
+[submodule "device/target/libs/custom-can-protocol"]
+	path = device/target/libs/custom-can-protocol
+	url = git@github.com:jaxsonpd/custom-can-protocol.git
