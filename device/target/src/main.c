@@ -16,6 +16,8 @@
 #include "avr_extends/delay.h"
 #include "avr_extends/UART.h"
 
+#include <avr/interrupt.h>
+
 #include "freq_input.h"
 #include "channel_select.h"
 
@@ -84,6 +86,7 @@ void print_packet(uint8_t buffer[]) {
 
 int main(void) {
     setup();
+    sei();
 
     freq_input_init();
 
@@ -92,8 +95,8 @@ int main(void) {
     while (true) {
         int8_t fineValue = freq_input_get(FREQ_FINE_INPUT);
         uint8_t selectedValue = channel_select_get();
-        printf("Selected Channel: %x\n", selectedValue);
-        delay_ms(100);
+        printf("Selected Channel: %x, Fine Change: %d\n", selectedValue, fineValue);
+        delay_ms(5000);
     }
     
 
