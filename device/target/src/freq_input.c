@@ -115,23 +115,28 @@ int freq_input_init(void) {
 
 int8_t freq_input_get(FreqInputSources_t input) {
     int8_t returnVal = 0;
+    volatile int8_t *change = &fineChange;
+
     if (input == FREQ_FINE_INPUT) {
         returnVal = fineChange;
-        fineChange = 0;
+        change = &fineChange;
     } else if (input == FREQ_COURSE_INPUT) {
         returnVal = coarseChange;
-        coarseChange = 0;
+        change = &coarseChange;
+    } else {
+        return 0;
     }
 
-    if ((returnVal % STEPS_PER_CLICK) == 0) {
-        returnVal = returnVal / STEPS_PER_CLICK;
+    if ((returnVal % 2) == 1) {
+        returnVal = (returnVal + 1) / STEPS_PER_CLICK;
+        *change = -1;
+    } else if ((returnVal % 2) == -1) {
+        returnVal = (returnVal - 1) / STEPS_PER_CLICK;
+        *change = 1;
     } else {
-        if (returnVal > 0) {
-            returnVal = (returnVal+1) / STEPS_PER_CLICK;
-        } else if (returnVal < 0) {
-            returnVal = (returnVal-1) / STEPS_PER_CLICK;
-        }
-    }   
+        returnVal = returnVal / STEPS_PER_CLICK;
+        *change = 0;
+    }
 
     return returnVal;
 }
