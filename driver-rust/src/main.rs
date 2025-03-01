@@ -1,67 +1,94 @@
-use msfs::sim_connect::{
-    data_definition, Period, SimConnect, SimConnectRecv, SIMCONNECT_OBJECT_ID_USER,
-};
+use serialport::SerialPort;
+use std::collections::btree_map::Range;
+use std::fs::read;
+use std::io::{self, Read, Write};
+use std::time::Duration;
+use customCANProtocol::{Packet, PacketByteLocations};
 
-#[data_definition]
-#[derive(Debug)]
-struct Data {
-    #[name = "RADIO HEIGHT"]
-    #[unit = "Feet"]
-    #[epsilon = 0.01]
-    height: f64,
-    #[name = "AIRSPEED INDICATED"]
-    #[unit = "Knots"]
-    #[epsilon = 0.01]
-    airspeed: f64,
+
+/// Open the serial port
+/// 
+fn open_serial_port(port_name: &str, baud_rate: u32) -> Result<Box<dyn SerialPort>, Box<dyn std::error::Error>> {
+    let port = serialport::new(port_name, baud_rate)
+        .timeout(Duration::from_millis(1000))
+        .open()
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+
+    Ok(port)
 }
 
-#[data_definition]
-#[derive(Debug)]
-struct Controls {
-    #[name = "ELEVATOR POSITION"]
-    #[unit = "Position"]
-    elevator: f64,
-    #[name = "AILERON POSITION"]
-    #[unit = "Position"]
-    ailerons: f64,
-    #[name = "RUDDER POSITION"]
-    #[unit = "Position"]
-    rudder: f64,
-    #[name = "ELEVATOR TRIM POSITION"]
-    #[unit = "Position"]
-    elevator_trim: f64,
-}
-
-#[data_definition]
-#[derive(Debug)]
-struct Throttle(
-    #[name = "GENERAL ENG THROTTLE LEVER POSITION:1"] #[unit = "Percent"] f64,
-    #[name = "GENERAL ENG THROTTLE LEVER POSITION:2"] #[unit = "Percent"] f64,
-);
-
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut sim = SimConnect::open("LOG", |sim, recv| match recv {
-        SimConnectRecv::SimObjectData(event) => match event.dwRequestID {
-            0 => {
-                println!("{:?}", event.into::<Data>(sim).unwrap());
-            }
-            1 => {
-                println!("{:?}", event.into::<Controls>(sim).unwrap());
-            }
-            2 => {
-                println!("{:?}", event.into::<Throttle>(sim).unwrap());
-            }
-            _ => {}
-        },
-        _ => println!("{:?}", recv),
-    })?;
-
-    sim.request_data_on_sim_object::<Data>(0, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame)?;
-    sim.request_data_on_sim_object::<Controls>(1, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame)?;
-    sim.request_data_on_sim_object::<Throttle>(2, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame)?;
+/// Read a custom can protocol packet from the serial port
+/// 
+/// # Parameters
+/// - `port` the serial port to read from
+/// 
+/// # Returns
+/// Return the packet as a buffer of u8s
+fn read_packet(port: &mut Box<dyn SerialPort>) -> Result<Box<Vec<u8>>, Box<dyn std::error::Error>> {
+    let mut buffer = vec![0u8; customCANProtocol::MAX_PACKET_LENGTH];
+    let mut idx = 0;
+    let mut read_buffer: Vec<u8> = vec![0; 1];
 
     loop {
-        sim.call_dispatch()?;
-        std::thread::sleep(std::time::Duration::from_millis(10));
+        let num_bytes = port.read(&mut read_buffer)?;
+        if num_bytes > 0 {
+            let byte = read_buffer[0];
+
+            if byte == customCANProtocol::PACKET_START_BYTE {
+                buffer[idx] = byte;
+                idx += 1;
+                break;
+            }
+        }
+    }
+    
+    loop {
+        let num_bytes = port.read(&mut read_buffer)?;
+        if num_bytes > 0 {
+            buffer[idx] = read_buffer[0];
+            idx += 1; 
+            if read_buffer[0] == customCANProtocol::PACKET_START_BYTE {
+                break;       
+            }
+        }
+    }
+    
+    print!("Got packet: ");
+    for &x in &buffer[..idx] {
+        print!("{}-", x);
+    }
+    print!("\n");
+
+    Ok(Box::new(buffer))
+}
+
+
+
+fn main() {
+    let port_name = "com3";
+    let baud_rate = 115200;
+
+    let mut port = match open_serial_port(port_name, baud_rate) {
+        Ok(port) => port,
+        Err(e) => {
+            eprintln!("Failed to open serial port: {}", e);
+            return;
+        }
+    };
+    
+
+    println!("Reading from serial port: {}", port_name);
+    loop {
+        let Packet = Packet::read_from_stream(&mut port);
+        // let packet: Vec<u8>;
+        // if let Ok(data) = read_packet(&mut port) {
+        //     // `data` is a `Box<Vec<u8>>`
+        //     packet= *data;
+        // } else {
+        //     eprintln!("Error reading packet");
+        //     // Handle the error as appropriate
+        // }
+        // let read_packet = customCANProtocol::Packet::new(packet[1], packet[1..]);
+        // read_packet.validate();
     }
 }
