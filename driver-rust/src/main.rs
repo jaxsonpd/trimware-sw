@@ -1,9 +1,8 @@
 use serialport::SerialPort;
-use std::collections::btree_map::Range;
-use std::fs::read;
-use std::io::{self, Read, Write};
+use std::io::{Read};
 use std::time::Duration;
-use customCANProtocol::{Packet, PacketByteLocations};
+use std::error::Error;
+use customCANProtocol::{Packet, PacketHandler};
 
 
 /// Open the serial port
@@ -17,52 +16,31 @@ fn open_serial_port(port_name: &str, baud_rate: u32) -> Result<Box<dyn SerialPor
     Ok(port)
 }
 
-/// Read a custom can protocol packet from the serial port
-/// 
-/// # Parameters
-/// - `port` the serial port to read from
-/// 
-/// # Returns
-/// Return the packet as a buffer of u8s
-fn read_packet(port: &mut Box<dyn SerialPort>) -> Result<Box<Vec<u8>>, Box<dyn std::error::Error>> {
-    let mut buffer = vec![0u8; customCANProtocol::MAX_PACKET_LENGTH];
-    let mut idx = 0;
-    let mut read_buffer: Vec<u8> = vec![0; 1];
+struct FreqPacketHandler;
 
-    loop {
-        let num_bytes = port.read(&mut read_buffer)?;
-        if num_bytes > 0 {
-            let byte = read_buffer[0];
-
-            if byte == customCANProtocol::PACKET_START_BYTE {
-                buffer[idx] = byte;
-                idx += 1;
-                break;
-            }
-        }
+impl FreqPacketHandler {
+    fn new() -> Self {
+        FreqPacketHandler {}
     }
-    
-    loop {
-        let num_bytes = port.read(&mut read_buffer)?;
-        if num_bytes > 0 {
-            buffer[idx] = read_buffer[0];
-            idx += 1; 
-            if read_buffer[0] == customCANProtocol::PACKET_START_BYTE {
-                break;       
-            }
-        }
-    }
-    
-    print!("Got packet: ");
-    for &x in &buffer[..idx] {
-        print!("{}-", x);
-    }
-    print!("\n");
-
-    Ok(Box::new(buffer))
 }
 
+impl PacketHandler for FreqPacketHandler {
+    fn handle_packet(&mut self, packet: &Packet) -> Result<(), Box<dyn Error>> {
+        
+        println!("Freq packet: {:?}", packet);
+        
+        let mut activefreqMHz: u16 = ((packet.payload[0] as u16) << 8) | (packet.payload[1] as u16);
+        let mut activefreqKHz: u16 = ((packet.payload[2] as u16) << 8) | (packet.payload[3] as u16);
 
+        println!("Active Freq: {}.{}", activefreqMHz, activefreqKHz);
+
+        return Ok(());
+    }
+
+    fn get_id(&self) -> u8 {
+        1
+    }
+}
 
 fn main() {
     let port_name = "com3";
@@ -75,11 +53,31 @@ fn main() {
             return;
         }
     };
+
+    let mut freq_packet_handler = FreqPacketHandler::new();
     
 
     println!("Reading from serial port: {}", port_name);
     loop {
-        let Packet = Packet::read_from_stream(&mut port);
+        match Packet::read_from_stream(&mut port) {
+            Ok(packet) => {
+                // Successfully read the packet, so we can print and use it
+                println!("{:?}", packet);
+
+                if packet.packet_ident == freq_packet_handler.get_id() {
+                    freq_packet_handler.handle_packet(&packet).unwrap();
+                }
+        
+                // You can now use 'packet' further in your code
+                // For example:
+                // process_packet(packet);
+            },
+            Err(e) => {
+                // Handle the error if reading from the stream fails
+                eprintln!("Error reading packet: {}", e);
+            }
+        }
+
         // let packet: Vec<u8>;
         // if let Ok(data) = read_packet(&mut port) {
         //     // `data` is a `Box<Vec<u8>>`
