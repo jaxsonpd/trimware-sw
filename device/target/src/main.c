@@ -65,6 +65,14 @@ uint16_t getPacket(uint8_t* buffer) {
     return 0;
 }
 
+void print_packet(uint8_t buffer[]) {
+    uint16_t i = 0;
+    do {
+        printf("0x%x ", buffer[i]);
+    } while(buffer[i++] != PACKET_END_BYTE || i == 1);
+
+}
+
 void setup(void) {
     pin13 = PIN(PORTB, 5);
     GPIO_pin_init(pin13, OUTPUT);
@@ -74,14 +82,6 @@ void setup(void) {
     delay_ms(1000);
 
     // init_processes();
-}
-
-void print_packet(uint8_t buffer[]) {
-    uint16_t i = 0;
-    do {
-        printf("0x%x ", buffer[i]);
-    } while(buffer[i++] != PACKET_END_BYTE || i == 1);
-
 }
 
 int main(void) {
