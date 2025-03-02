@@ -1,19 +1,20 @@
-use std::io::{Read};
 use std::time::Duration;
 use std::error::Error;
-
-use std::pin::Pin;
 
 use msfs::sys;
 use serialport::SerialPort;
 
-use msfs::sim_connect::{SimConnect};
+use msfs::sim_connect::SimConnect;
 
 use customCANProtocol::{Packet, PacketHandler};
 
+mod msfs_handler;
+
+use msfs_handler::MSFSHandler;
+
 mod freq;
 
-use freq::{FreqPacketHandler};
+use freq::FreqPacketHandler;
 
 /// Open the serial port
 /// 
@@ -52,9 +53,13 @@ fn open_msfs2020_connection() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn set_msfs2020_freq(activefreqMHz: u16, activefreqKHz: u16, standbyFreqMHz: u16, standbyFreqKHz: u16) -> Result<(), Box<dyn Error>> {
-    println!("Setting active freq to {} MHz, {} KHz", activefreqMHz, activefreqKHz);
-    println!("Setting standby freq to {} MHz, {} KHz", standbyFreqMHz, standbyFreqKHz);
+fn set_msfs2020_freq(active_freq_mhz: u16, active_freq_khz: u16, standby_freq_mhz: u16, standby_freq_khz: u16) -> Result<(), Box<dyn Error>> {
+    println!("Setting active freq to {} MHz, {} KHz", active_freq_mhz, active_freq_khz);
+    println!("Setting standby freq to {} MHz, {} KHz", standby_freq_mhz, standby_freq_khz);
+
+    let mut msfs_handler = MSFSHandler::new();
+    let _ = msfs_handler.update_freq(active_freq_mhz, active_freq_khz, standby_freq_mhz, standby_freq_khz);
+    
 
     Ok(())
 }
@@ -71,12 +76,9 @@ fn main() {
         }
     };
 
-    let mut freq_packet_handler = FreqPacketHandler::new(set_msfs2020_freq);
-    
+    let mut freq_packet_handler = FreqPacketHandler::new(set_msfs2020_freq);  
 
     println!("Reading from serial port: {}", port_name);
-
-    open_msfs2020_connection();
 
     loop {
         match Packet::read_from_stream(&mut port) {
