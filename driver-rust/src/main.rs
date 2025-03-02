@@ -1,9 +1,19 @@
-use serialport::SerialPort;
 use std::io::{Read};
 use std::time::Duration;
 use std::error::Error;
+
+use std::pin::Pin;
+
+use msfs::sys;
+use serialport::SerialPort;
+
+use msfs::sim_connect::{SimConnect};
+
 use customCANProtocol::{Packet, PacketHandler};
 
+mod freq;
+
+use freq::{FreqPacketHandler};
 
 /// Open the serial port
 /// 
@@ -16,30 +26,37 @@ fn open_serial_port(port_name: &str, baud_rate: u32) -> Result<Box<dyn SerialPor
     Ok(port)
 }
 
-struct FreqPacketHandler;
+fn open_msfs2020_connection() -> Result<(), Box<dyn Error>> {
+    let mut sim = SimConnect::open("FLIGHT_SIM_SOFTWARE", |_sim, recv| {
+        println!("WRITER: {:?}", recv);
+    })?;
 
-impl FreqPacketHandler {
-    fn new() -> Self {
-        FreqPacketHandler {}
+    let event_com1_set: u32 = match sim.map_client_event_to_sim_event("COM_RADIO_SET_HZ", false) {
+        Ok(event_id) => {
+            println!("Successfully mapped COM1 event. Event ID: {}", event_id);
+            event_id
+        }
+        Err(e) => {
+            eprintln!("Failed to map COM1 event: {:?}", e);
+            return Err(e.into()); // Convert HResult to a more general error type if needed
+        }
+    };
+
+    let com1_freq = 128_450_000;
+
+    if let Err(e) = sim.transmit_client_event(event_com1_set, event_com1_set, com1_freq as sys::DWORD) {
+        eprintln!("Failed to transmit event: {:?}", e);
+    } else {
+        println!("COM1 frequency set to 123.45 MHz.");
     }
+    Ok(())
 }
 
-impl PacketHandler for FreqPacketHandler {
-    fn handle_packet(&mut self, packet: &Packet) -> Result<(), Box<dyn Error>> {
-        
-        println!("Freq packet: {:?}", packet);
-        
-        let mut activefreqMHz: u16 = ((packet.payload[0] as u16) << 8) | (packet.payload[1] as u16);
-        let mut activefreqKHz: u16 = ((packet.payload[2] as u16) << 8) | (packet.payload[3] as u16);
+fn set_msfs2020_freq(activefreqMHz: u16, activefreqKHz: u16, standbyFreqMHz: u16, standbyFreqKHz: u16) -> Result<(), Box<dyn Error>> {
+    println!("Setting active freq to {} MHz, {} KHz", activefreqMHz, activefreqKHz);
+    println!("Setting standby freq to {} MHz, {} KHz", standbyFreqMHz, standbyFreqKHz);
 
-        println!("Active Freq: {}.{}", activefreqMHz, activefreqKHz);
-
-        return Ok(());
-    }
-
-    fn get_id(&self) -> u8 {
-        1
-    }
+    Ok(())
 }
 
 fn main() {
@@ -54,10 +71,13 @@ fn main() {
         }
     };
 
-    let mut freq_packet_handler = FreqPacketHandler::new();
+    let mut freq_packet_handler = FreqPacketHandler::new(set_msfs2020_freq);
     
 
     println!("Reading from serial port: {}", port_name);
+
+    open_msfs2020_connection();
+
     loop {
         match Packet::read_from_stream(&mut port) {
             Ok(packet) => {
