@@ -2,19 +2,19 @@ use std::error::Error;
 
 use customCANProtocol::{Packet, PacketHandler};
 
-pub struct FreqPacketHandler {
+pub struct FreqHandler {
     set_freq: fn(u16, u16, u16, u16) -> Result<(), Box<dyn Error>>,
 }
 
-impl FreqPacketHandler {
+impl FreqHandler {
     pub fn new(set_freq: fn(u16, u16, u16, u16) -> Result<(), Box<dyn Error>>) -> Self {
-        FreqPacketHandler {
+        FreqHandler {
             set_freq
         }
     }
 }
 
-impl PacketHandler for FreqPacketHandler {
+impl PacketHandler for FreqHandler {
     fn handle_packet(&mut self, packet: &Packet) -> Result<(), Box<dyn Error>> {
         
         println!("Freq packet: {:?}", packet);

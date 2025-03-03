@@ -8,13 +8,13 @@ use msfs::sim_connect::SimConnect;
 
 use customCANProtocol::{Packet, PacketHandler};
 
-mod msfs_handler;
+mod msfs_connect;
 
-use msfs_handler::MSFSHandler;
+use msfs_connect::MSFSCommunicator;
 
 mod freq;
 
-use freq::FreqPacketHandler;
+use freq::FreqHandler;
 
 /// Open the serial port
 /// 
@@ -57,7 +57,7 @@ fn set_msfs2020_freq(active_freq_mhz: u16, active_freq_khz: u16, standby_freq_mh
     println!("Setting active freq to {} MHz, {} KHz", active_freq_mhz, active_freq_khz);
     println!("Setting standby freq to {} MHz, {} KHz", standby_freq_mhz, standby_freq_khz);
 
-    let mut msfs_handler = MSFSHandler::new();
+    let mut msfs_handler = MSFSCommunicator::new();
     let _ = msfs_handler.update_freq(active_freq_mhz, active_freq_khz, standby_freq_mhz, standby_freq_khz);
     
 
@@ -76,7 +76,7 @@ fn main() {
         }
     };
 
-    let mut freq_packet_handler = FreqPacketHandler::new(set_msfs2020_freq);  
+    let mut freq_packet_handler = FreqHandler::new(set_msfs2020_freq);  
 
     println!("Reading from serial port: {}", port_name);
 
