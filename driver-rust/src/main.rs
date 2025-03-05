@@ -1,67 +1,67 @@
-use msfs::sim_connect::{
-    data_definition, Period, SimConnect, SimConnectRecv, SIMCONNECT_OBJECT_ID_USER,
-};
+use std::time::Duration;
+use std::error::Error;
 
-#[data_definition]
-#[derive(Debug)]
-struct Data {
-    #[name = "RADIO HEIGHT"]
-    #[unit = "Feet"]
-    #[epsilon = 0.01]
-    height: f64,
-    #[name = "AIRSPEED INDICATED"]
-    #[unit = "Knots"]
-    #[epsilon = 0.01]
-    airspeed: f64,
+use serialport::SerialPort;
+
+use customCANProtocol::{Packet, PacketHandler};
+
+mod msfs_connect;
+
+use msfs_connect::MSFSCommunicator;
+
+mod device_select;
+
+use device_select::DeviceSelectHandler;
+
+mod freq;
+
+use freq::FreqHandler;
+
+/// Open the serial port
+/// 
+fn open_serial_port(port_name: &str, baud_rate: u32) -> Result<Box<dyn SerialPort>, Box<dyn std::error::Error>> {
+    let port = serialport::new(port_name, baud_rate)
+        .timeout(Duration::from_millis(1000))
+        .open()
+        .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+
+    Ok(port)
 }
 
-#[data_definition]
-#[derive(Debug)]
-struct Controls {
-    #[name = "ELEVATOR POSITION"]
-    #[unit = "Position"]
-    elevator: f64,
-    #[name = "AILERON POSITION"]
-    #[unit = "Position"]
-    ailerons: f64,
-    #[name = "RUDDER POSITION"]
-    #[unit = "Position"]
-    rudder: f64,
-    #[name = "ELEVATOR TRIM POSITION"]
-    #[unit = "Position"]
-    elevator_trim: f64,
-}
+fn main() {
+    let port_name = "com3";
+    let baud_rate = 115200;
 
-#[data_definition]
-#[derive(Debug)]
-struct Throttle(
-    #[name = "GENERAL ENG THROTTLE LEVER POSITION:1"] #[unit = "Percent"] f64,
-    #[name = "GENERAL ENG THROTTLE LEVER POSITION:2"] #[unit = "Percent"] f64,
-);
+    let mut port = match open_serial_port(port_name, baud_rate) {
+        Ok(port) => port,
+        Err(e) => {
+            eprintln!("Failed to open serial port: {}", e);
+            return;
+        }
+    };
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut sim = SimConnect::open("LOG", |sim, recv| match recv {
-        SimConnectRecv::SimObjectData(event) => match event.dwRequestID {
-            0 => {
-                println!("{:?}", event.into::<Data>(sim).unwrap());
-            }
-            1 => {
-                println!("{:?}", event.into::<Controls>(sim).unwrap());
-            }
-            2 => {
-                println!("{:?}", event.into::<Throttle>(sim).unwrap());
-            }
-            _ => {}
-        },
-        _ => println!("{:?}", recv),
-    })?;
+    let mut msfs_handler = MSFSCommunicator::new();
 
-    sim.request_data_on_sim_object::<Data>(0, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame)?;
-    sim.request_data_on_sim_object::<Controls>(1, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame)?;
-    sim.request_data_on_sim_object::<Throttle>(2, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame)?;
+    let mut device_select_handler = DeviceSelectHandler::new(msfs_handler);
+
+    let mut freq_packet_handler = FreqHandler::new(msfs_handler);  
+
+    println!("Reading from serial port: {}", port_name);
 
     loop {
-        sim.call_dispatch()?;
-        std::thread::sleep(std::time::Duration::from_millis(10));
+        match Packet::read_from_stream(&mut port) {
+            Ok(packet) => {
+                println!("{:?}", packet);
+
+                if packet.packet_ident == freq_packet_handler.get_id() {
+                    freq_packet_handler.handle_packet(&packet).unwrap();
+                } else if packet.packet_ident == device_select_handler.get_id() {
+                    device_select_handler.handle_packet(&packet).unwrap();
+                }
+            },
+            Err(e) => {
+                eprintln!("Error reading packet: {}", e);
+            }
+        }
     }
 }
