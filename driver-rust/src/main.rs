@@ -1,5 +1,7 @@
-use std::time::Duration;
 use std::error::Error;
+use std::time::Duration;
+
+use std::cell::RefCell;
 
 use serialport::SerialPort;
 
@@ -7,7 +9,7 @@ use customCANProtocol::{Packet, PacketHandler};
 
 mod msfs_connect;
 
-use msfs_connect::MSFSCommunicator;
+use msfs_connect::MSFSComms;
 
 mod device_select;
 
@@ -18,8 +20,11 @@ mod freq;
 use freq::FreqHandler;
 
 /// Open the serial port
-/// 
-fn open_serial_port(port_name: &str, baud_rate: u32) -> Result<Box<dyn SerialPort>, Box<dyn std::error::Error>> {
+///
+fn open_serial_port(
+    port_name: &str,
+    baud_rate: u32,
+) -> Result<Box<dyn SerialPort>, Box<dyn std::error::Error>> {
     let port = serialport::new(port_name, baud_rate)
         .timeout(Duration::from_millis(1000))
         .open()
@@ -40,11 +45,9 @@ fn main() {
         }
     };
 
-    let mut msfs_handler = MSFSCommunicator::new();
+    let device_select_handler = RefCell::new(DeviceSelectHandler::new());
 
-    let mut device_select_handler = DeviceSelectHandler::new(msfs_handler);
-
-    let mut freq_packet_handler = FreqHandler::new(msfs_handler);  
+    let mut freq_packet_handler = FreqHandler::new(&device_select_handler);
 
     println!("Reading from serial port: {}", port_name);
 
@@ -52,16 +55,20 @@ fn main() {
         match Packet::read_from_stream(&mut port) {
             Ok(packet) => {
                 println!("{:?}", packet);
-
                 if packet.packet_ident == freq_packet_handler.get_id() {
                     freq_packet_handler.handle_packet(&packet).unwrap();
-                } else if packet.packet_ident == device_select_handler.get_id() {
-                    device_select_handler.handle_packet(&packet).unwrap();
+                } else if packet.packet_ident == device_select_handler.borrow().get_id() {
+                    device_select_handler.borrow_mut().handle_packet(&packet).unwrap();
                 }
-            },
+            }
             Err(e) => {
                 eprintln!("Error reading packet: {}", e);
             }
         }
+        
+        let mut device_get_packet = device_select_handler.borrow().compose_request_device_packet();
+        device_get_packet.write_to_stream(&mut port);
+
+        std::thread::sleep(std::time::Duration::from_millis(100));
     }
 }

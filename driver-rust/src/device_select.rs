@@ -18,6 +18,10 @@ impl DeviceSelectHandler {
     pub fn get_selected_device(&self) -> MSFSRadioDevices {
         self.selected_device
     }
+
+    pub fn compose_request_device_packet(&self) -> Packet {
+        Packet::new(self.get_id(), Vec::new(), None)
+    }
 }
 
 impl PacketHandler for DeviceSelectHandler {
@@ -31,6 +35,8 @@ impl PacketHandler for DeviceSelectHandler {
             3 => self.selected_device = MSFSRadioDevices::NAV2,
             _ => println!("Unknown device: {}", packet_device),
         }
+
+        println!("Selected device: {:?}", self.selected_device);
 
         Ok(())
     }
