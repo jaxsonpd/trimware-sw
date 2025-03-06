@@ -93,8 +93,8 @@ int getc_new(void) {
 
 int main(void) {
     setup();
-    sei(); 
-    
+    sei();
+
     struct PacketProcessor freqPacketProcessor = {
         .identifier = 0x01,
         .packet_processing_cb = freq_handler_packet_cb
@@ -104,7 +104,7 @@ int main(void) {
         .identifier = 0x04,
         .packet_processing_cb = channel_select_packet_cb
     };
-    
+
 
     packet_processing_add_callback(freqPacketProcessor);
     packet_processing_add_callback(channelPacketProcessor);
@@ -113,14 +113,14 @@ int main(void) {
         // printf("Standby Freq: %u.%03u, Active Freq: %u.%03u\n", standbyFreq.freqMHz
         //    , standbyFreq.freqKHz, activeFreq.freqMHz, activeFreq.freqKHz);
         if (freq_handler_freq_changed()) {
-            uint8_t payloadBuf[10] = {0};
+            uint8_t payloadBuf[10] = { 0 };
             uint16_t payloadSize = freq_handler_packet_assemble(payloadBuf);
 
             packet_send(putchar, payloadBuf, payloadSize, 0x01);
         }
 
         if (chanel_select_changed()) {
-            uint8_t payloadBuf[5] = {0};
+            uint8_t payloadBuf[5] = { 0 };
             uint16_t payloadLen = channel_select_packet_assemble(payloadBuf);
 
             packet_send(putchar, payloadBuf, payloadLen, 0x04);
@@ -129,20 +129,18 @@ int main(void) {
         uint8_t readBuf[50];
         uint16_t length = packet_receive(getc_new, readBuf);
 
+
         if (length > 0) {
-            printf("Length: %u\n", length);
+            packetProcessingResult_t result = packet_processing_process(readBuf, length);
+
+            if (result != PROCESS_COMPLETE) {
+                printf("Packet processing error: %d\n", result);
+            }
         }
-            // if (length > 0) {
-        //     packetProcessingResult_t result = packet_processing_process(readBuf, length);
-        //     uint8_t payloadBuf[5] = {result, 0, 0, 0, 0};
-        //     // uint16_t payloadLen = channel_select_packet_assemble(payloadBuf);
 
-        //     packet_send(putchar, readBuf, length, 0x04);
-        // }
-
-        delay_ms(1000);
+        delay_ms(100);
     }
-    
+
 
     // while (true)
     // {
@@ -167,7 +165,7 @@ int main(void) {
     //     if (UART_data_available()) {
     //         inputLength = getPacket(inputBuffer);
     //         newPacket = inputLength > 0;
-            
+
     //         if (debug) {
     //             printf("Packet Length 0x%x ", inputLength);
     //             if (newPacket) {

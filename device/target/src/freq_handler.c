@@ -11,6 +11,7 @@
 #include <stdio.h>
 
 #include "custom_can_protocol/packet_processing.h"
+#include "custom_can_protocol/packet_handler.h"
 
 #include "freq_info.h"
 
