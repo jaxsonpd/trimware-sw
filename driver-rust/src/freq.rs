@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::cell::RefCell;
 
-use crate::{msfs_connect::MSFSComms, msfs_connect::MSFSFreqOptions};
+use crate::{msfs_connect::MSFSComms, msfs_connect::MSFSFreqOptions, msfs_connect::MSFSRadioDevices};
 use crate::device_select::DeviceSelectHandler;
 
 use customCANProtocol::{Packet, PacketHandler};
@@ -13,7 +13,7 @@ pub struct FreqHandler<'a> {
 
 impl<'a> FreqHandler<'a> {
     pub fn new(device_select_handler: &'a RefCell<DeviceSelectHandler>) -> Self {
-        let msfs_connection = MSFSComms::new();
+        let mut msfs_connection = MSFSComms::new();
         
         FreqHandler {
             msfs_connection: msfs_connection,
@@ -24,6 +24,8 @@ impl<'a> FreqHandler<'a> {
 
 impl PacketHandler for FreqHandler<'_> {
     fn handle_packet(&mut self, packet: &Packet) -> Result<(), Box<dyn Error>> {
+        self.msfs_connection.get_frequency(&MSFSRadioDevices::COM1, &MSFSFreqOptions::Active);
+
         
         let standby_freq_mhz: u16 = ((packet.payload[0] as u16) << 8) | (packet.payload[1] as u16);
         let standby_freq_khz: u16 = ((packet.payload[2] as u16) << 8) | (packet.payload[3] as u16);
@@ -41,8 +43,20 @@ impl PacketHandler for FreqHandler<'_> {
         
         println!("Set frequency {} {} to device {:?}", active_freq/1000, standby_freq/1000, selected_device);
 
-        self.msfs_connection.update_freq(&selected_device, &MSFSFreqOptions::Active, active_freq);
-        self.msfs_connection.update_freq(&selected_device, &MSFSFreqOptions::Standby, standby_freq);
+        match self.msfs_connection.update_freq(&selected_device, &MSFSFreqOptions::Active, active_freq) {
+            Ok(_e) => {
+            }
+            Err(e) => {
+                println!("Error setting frequency: {:?}", e);
+            }
+        };
+        match self.msfs_connection.update_freq(&selected_device, &MSFSFreqOptions::Standby, standby_freq){
+            Ok(_e) => {
+            }
+            Err(e) => {
+                println!("Error setting frequency: {:?}", e);
+            }
+        };
 
         return Ok(());
     }

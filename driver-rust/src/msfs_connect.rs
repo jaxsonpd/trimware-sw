@@ -1,8 +1,8 @@
 use std::pin::Pin;
 
-use msfs::sys;
+use msfs::sys::{self, BCD16};
 
-use msfs::sim_connect::SimConnect;
+use msfs::sim_connect::{SimConnectRecv, SimConnect, data_definition, SIMCONNECT_OBJECT_ID_USER, Period};
 
 pub enum MSFSFreqOptions {
     Active,
@@ -20,7 +20,7 @@ pub enum MSFSRadioDevices {
     XPDR,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum MSFSCommunicatorError {
     InvalidDevice,
 }
@@ -35,6 +35,35 @@ pub struct MSFSComms<'a> {
     event_nav1_standby_set: u32,
     event_nav2_active_set: u32,
     event_nav2_standby_set: u32,
+}
+
+#[data_definition]
+#[derive(Debug)]
+struct FrequencyData {
+    #[name = "COM STANDBY FREQUENCY:1"]
+    #[unit = "Frequency"]
+    com1_standby_frequency: f64,
+    #[name = "COM ACTIVE FREQUENCY:1"]
+    #[unit = "Frequency"]
+    com1_active_frequency: f64,
+    #[name = "NAV STANDBY FREQUENCY:1"]
+    #[unit = "Frequency"]
+    nav1_standby_frequency: f64,
+    #[name = "NAV ACTIVE FREQUENCY:1"]
+    #[unit = "Frequency"]
+    nav1_active_frequency: f64,
+    #[name = "NAV STANDBY FREQUENCY:2"]
+    #[unit = "Frequency"]
+    nav2_standby_frequency: f64,
+    #[name = "NAV ACTIVE FREQUENCY:2"]
+    #[unit = "Frequency"]
+    nav2_active_frequency: f64,
+    #[name = "COM STANDBY FREQUENCY:2"]
+    #[unit = "Frequency"]
+    com2_standby_frequency: f64,
+    #[name = "COM ACTIVE FREQUENCY:2"]
+    #[unit = "Frequency"]
+    com2_active_frequency: f64,
 }
 
 impl MSFSComms<'_> {
@@ -59,8 +88,14 @@ impl MSFSComms<'_> {
     }
 
     pub fn new() -> Self {
-        let mut sim = match SimConnect::open("FLIGHT_SIM_SOFTWARE", |_sim, recv| {
-            println!("WRITER: {:?}", recv);
+        let mut sim = match SimConnect::open("FLIGHT_SIM_SOFTWARE", |sim, recv| match recv {
+            SimConnectRecv::SimObjectData(event) => match event.dwRequestID {
+                0 => {
+                    println!("{:?}", event.into::<FrequencyData>(sim).unwrap());
+                }
+                _ => {}
+            },
+            _ => println!("{:?}", recv)
         }) {
             Ok(sim) => sim,
             Err(e) => panic!("Error opening SimConnect: {:?}", e),
@@ -75,6 +110,9 @@ impl MSFSComms<'_> {
         let event_nav1_standby_set: u32 = MSFSComms::add_event(&mut sim, "NAV1_STBY_SET_HZ");
         let event_nav2_active_set: u32 = MSFSComms::add_event(&mut sim, "NAV2_RADIO_SET_HZ");
         let event_nav2_standby_set: u32 = MSFSComms::add_event(&mut sim, "NAV2_STBY_SET_HZ");
+        
+        let result: Result<(), msfs::sim_connect::HResult> = sim.request_data_on_sim_object::<FrequencyData>(0, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame);
+        print!("result {:?}", result);
 
         MSFSComms {
             sim_connect: sim,
@@ -134,5 +172,18 @@ impl MSFSComms<'_> {
         }
 
         Ok(())
+    }
+
+    /// Get a new frequency for the given device and option.
+    /// 
+    /// # Argument
+    /// - device the device to get the frequency from
+    /// - option the active or standby frequency
+    /// 
+    /// # Returns
+    /// - the frequency in hz
+    pub fn get_frequency(&mut self, device: &MSFSRadioDevices, option: &MSFSFreqOptions) -> Result<u32, MSFSCommunicatorError> {
+        self.sim_connect.call_dispatch();
+        Ok(1)
     }
 }

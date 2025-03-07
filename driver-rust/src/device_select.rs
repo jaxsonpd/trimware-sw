@@ -4,6 +4,7 @@ use customCANProtocol::{Packet, PacketHandler};
 
 use crate::msfs_connect::MSFSRadioDevices;
 
+/// Handle the selection of radio devices
 pub struct DeviceSelectHandler {
     selected_device: MSFSRadioDevices,
 }
