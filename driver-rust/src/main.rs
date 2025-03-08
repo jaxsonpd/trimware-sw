@@ -5,7 +5,7 @@ use std::cell::RefCell;
 
 use serialport::SerialPort;
 
-use customCANProtocol::{Packet, PacketHandler};
+use custom_can_protocol::{Packet, PacketHandler};
 
 mod msfs_connect;
 

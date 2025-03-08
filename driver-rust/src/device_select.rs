@@ -1,6 +1,6 @@
-use std::error::Error;
+use std::{error::Error, vec};
 
-use customCANProtocol::{Packet, PacketHandler};
+use custom_can_protocol::{Packet, PacketHandler};
 
 use crate::msfs_connect::MSFSRadioDevices;
 
@@ -21,7 +21,7 @@ impl DeviceSelectHandler {
     }
 
     pub fn compose_request_device_packet(&self) -> Packet {
-        Packet::new(self.get_id(), Vec::new(), None)
+        Packet::new(self.get_packet_id(), Vec::new(), Vec::new())
     }
 }
 
@@ -42,7 +42,7 @@ impl PacketHandler for DeviceSelectHandler {
         Ok(())
     }
 
-    fn get_id(&self) -> u8 {
+    fn get_packet_id(&self) -> u8 {
         4
     }
 }

@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use crate::{msfs_connect::MSFSComms, msfs_connect::MSFSFreqOptions, msfs_connect::MSFSRadioDevices};
 use crate::device_select::DeviceSelectHandler;
 
-use customCANProtocol::{Packet, PacketHandler};
+use custom_can_protocol::{Packet, PacketHandler};
 
 pub struct FreqHandler<'a> {
     msfs_connection: MSFSComms<'a>,
@@ -61,7 +61,7 @@ impl PacketHandler for FreqHandler<'_> {
         return Ok(());
     }
 
-    fn get_id(&self) -> u8 {
+    fn get_packet_id(&self) -> u8 {
         1
     }
 }
