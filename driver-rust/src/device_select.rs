@@ -1,4 +1,4 @@
-use std::{error::Error, vec};
+use std::{error::Error};
 
 use custom_can_protocol::{Packet, PacketHandler};
 
@@ -8,6 +8,18 @@ use crate::msfs_connect::MSFSRadioDevices;
 pub struct DeviceSelectHandler {
     selected_device: MSFSRadioDevices,
 }
+
+
+pub fn convert_to_device(number: u8) -> MSFSRadioDevices {
+    match number {
+        1 => MSFSRadioDevices::COM1,
+        2 => MSFSRadioDevices::COM2,
+        3 => MSFSRadioDevices::NAV1,
+        4 => MSFSRadioDevices::NAV2,
+        _ => MSFSRadioDevices::COM1,
+    }
+}
+
 
 impl DeviceSelectHandler {
     pub fn new() -> Self {

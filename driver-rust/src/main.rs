@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::time::Duration;
 
 use std::cell::RefCell;
@@ -8,8 +7,6 @@ use serialport::SerialPort;
 use custom_can_protocol::{Packet, PacketHandler};
 
 mod msfs_connect;
-
-use msfs_connect::MSFSComms;
 
 mod device_select;
 
@@ -46,10 +43,12 @@ fn main() {
     };
 
     let device_select_handler = RefCell::new(DeviceSelectHandler::new());
-    let mut request = device_select_handler.borrow_mut().compose_request_device_packet();
-    let _ = request.write_to_stream(&mut port);
-
     let mut freq_packet_handler = FreqHandler::new(&device_select_handler);
+
+    // let request = device_select_handler
+    //     .borrow_mut()
+    //     .compose_request_device_packet();
+    // let _ = request.write_to_stream(&mut port);
 
     println!("Reading from serial port: {}", port_name);
 
@@ -57,17 +56,20 @@ fn main() {
         match Packet::read_from_stream(&mut port) {
             Ok(packet) => {
                 println!("{:?}", packet);
-                if packet.packet_ident == freq_packet_handler.get_id() {
+                if packet.packet_ident == freq_packet_handler.get_packet_id() {
                     freq_packet_handler.handle_packet(&packet).unwrap();
-                } else if packet.packet_ident == device_select_handler.borrow().get_id() {
-                    device_select_handler.borrow_mut().handle_packet(&packet).unwrap();
+                } else if packet.packet_ident == device_select_handler.borrow().get_packet_id() {
+                    device_select_handler
+                        .borrow_mut()
+                        .handle_packet(&packet)
+                        .unwrap();
                 }
             }
             Err(e) => {
-                eprintln!("Error reading packet: {}", e);
+                eprintln!("Error reading packet: {:?}", e);
             }
         }
-        
+
         // let mut device_get_packet = device_select_handler.borrow().compose_request_device_packet();
         // device_get_packet.write_to_stream(&mut port);
 

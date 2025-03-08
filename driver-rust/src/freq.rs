@@ -2,7 +2,7 @@ use std::error::Error;
 use std::cell::RefCell;
 
 use crate::{msfs_connect::MSFSComms, msfs_connect::MSFSFreqOptions, msfs_connect::MSFSRadioDevices};
-use crate::device_select::DeviceSelectHandler;
+use crate::device_select::{DeviceSelectHandler, convert_to_device};
 
 use custom_can_protocol::{Packet, PacketHandler};
 
@@ -24,41 +24,39 @@ impl<'a> FreqHandler<'a> {
 
 impl PacketHandler for FreqHandler<'_> {
     fn handle_packet(&mut self, packet: &Packet) -> Result<(), Box<dyn Error>> {
-        self.msfs_connection.get_frequency(&MSFSRadioDevices::COM1, &MSFSFreqOptions::Active);
+        let radio_type = convert_to_device(packet.payload[0]);
 
+        let mut standby_freq: u64 = ((packet.payload[1] as u64) << 24)
+                                + ((packet.payload[2] as u64) << 16)
+                                + ((packet.payload[3] as u64) << 8)
+                                + ((packet.payload[4] as u64) << 0);
         
-        let standby_freq_mhz: u16 = ((packet.payload[0] as u16) << 8) | (packet.payload[1] as u16);
-        let standby_freq_khz: u16 = ((packet.payload[2] as u16) << 8) | (packet.payload[3] as u16);
+        let mut active_freq: u64 = ((packet.payload[5] as u64) << 24)
+                                + ((packet.payload[6] as u64) << 16)
+                                + ((packet.payload[7] as u64) << 8)
+                                + ((packet.payload[8] as u64) << 0);
 
-        let active_freq_mhz: u16 = ((packet.payload[4] as u16) << 8) | (packet.payload[5] as u16);
-        let active_freq_khz: u16 = ((packet.payload[6] as u16) << 8) | (packet.payload[7] as u16);
-
-        let standby_freq = ((standby_freq_mhz as u32) * 1e6 as u32
-                        + (standby_freq_khz as u32) * 1e3 as u32) as u64;
+        active_freq *= 1000;
+        standby_freq *= 1000;
         
-        let active_freq  = ((active_freq_mhz as u32) * 1e6 as u32
-                        + (active_freq_khz as u32) * 1e3 as u32) as u64;
+        println!("Set frequency Active: {}, Standby: {} to device {:?}", active_freq/1000, standby_freq/1000, radio_type);
 
-        let selected_device = self.device_select_handler.borrow().get_selected_device();
-        
-        println!("Set frequency {} {} to device {:?}", active_freq/1000, standby_freq/1000, selected_device);
-
-        match self.msfs_connection.update_freq(&selected_device, &MSFSFreqOptions::Active, active_freq) {
+        match self.msfs_connection.update_freq(&radio_type, &MSFSFreqOptions::Active, active_freq) {
             Ok(_e) => {
             }
             Err(e) => {
-                println!("Error setting frequency: {:?}", e);
+                println!("Error setting active frequency: {:?}", e);
             }
         };
-        match self.msfs_connection.update_freq(&selected_device, &MSFSFreqOptions::Standby, standby_freq){
+        match self.msfs_connection.update_freq(&radio_type, &MSFSFreqOptions::Standby, standby_freq){
             Ok(_e) => {
             }
             Err(e) => {
-                println!("Error setting frequency: {:?}", e);
+                println!("Error setting standby frequency: {:?}", e);
             }
         };
 
-        return Ok(());
+        Ok(())
     }
 
     fn get_packet_id(&self) -> u8 {
