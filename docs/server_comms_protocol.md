@@ -18,8 +18,8 @@ Command: Update frequencies
 Bytes:
 
 - Radio Device Type
-- The first 4 bytes are the active frequency
-- The next 4 bytes are the standby frequency
+- The first 4 bytes are the active frequency MSB first
+- The next 4 bytes are the standby frequency MSB first
 
 The frequency can be requested by just sending the device type byte.
 
