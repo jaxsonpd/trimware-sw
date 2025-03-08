@@ -104,7 +104,7 @@ int freq_input_init(void) {
     GPIO_pin_init(COARSE_CHB_PIN, INPUT_PULLUP);
 
     // Enable interrupts
-    PCMSK2 |= (1 << FINE_CHA_PIN_NUM) | (1 << FINE_CHB_PIN_NUM) 
+    PCMSK2 |= (1 << FINE_CHA_PIN_NUM) | (1 << FINE_CHB_PIN_NUM)
         | (1 << FINE_BUTTON_PIN_NUM) | (1 << COARSE_CHA_PIN_NUM)
         | (1 << COARSE_CHB_PIN_NUM) | (1 << COARSE_BUTTON_PIN_NUM);
 
@@ -115,7 +115,7 @@ int freq_input_init(void) {
 
 int8_t freq_input_get(FreqInputSources_t input) {
     int8_t returnVal = 0;
-    volatile int8_t *change = &fineChange;
+    volatile int8_t* change = &fineChange;
 
     if (input == FREQ_FINE_INPUT) {
         returnVal = fineChange;
@@ -142,7 +142,7 @@ int8_t freq_input_get(FreqInputSources_t input) {
 }
 
 FreqButtonState_t freq_input_button_get(FreqInputSources_t button) {
-    volatile FreqButtonState_t *state = &fineButtonState;
+    volatile FreqButtonState_t* state = &fineButtonState;
 
     if (button == FREQ_FINE_INPUT) {
         state = &fineButtonState;

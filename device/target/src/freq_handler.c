@@ -1,4 +1,4 @@
-/** 
+/**
  * @file freq_handler.c
  * @author Jack Duignan (JackpDuignan@gmail.com)
  * @date 2025-03-05
@@ -14,77 +14,75 @@
 #include "custom_can_protocol/packet_handler.h"
 
 #include "freq_info.h"
+#include "device_select.h"
 
 #include "freq_handler.h"
-
-freq_t standbyFreq_prev = {
-    .freqKHz = 100,
-    .freqMHz = 100
-};
-
-freq_t activeFreq_prev = {
-    .freqKHz = 100,
-    .freqMHz = 100
-};
 
 int freq_handler_init(void) {
     freq_info_init();
 
-    standbyFreq_prev = freq_info_get(STANDBY_FREQ);
-    activeFreq_prev = freq_info_get(ACTIVE_FREQ);
-
     return 0;
 }
 
-uint16_t freq_handler_packet_assemble(uint8_t *buffer) {
+uint16_t freq_handler_packet_assemble(uint8_t* buffer) {
+    freqType_t type = freq_handler_convert_to_type(device_select_get());
 
-    freq_t standbyFreq = freq_info_get(STANDBY_FREQ);
-    freq_t activeFreq = freq_info_get(ACTIVE_FREQ);
+    freq_t standbyFreq = freq_info_get(type, STANDBY_FREQ);
+    freq_t activeFreq = freq_info_get(type, ACTIVE_FREQ);
 
     uint8_t bufferIndex = 0;
 
-    buffer[bufferIndex++] = (standbyFreq.freqMHz >> 8) & 0xFF;
-    buffer[bufferIndex++] = standbyFreq.freqMHz & 0xFF;
-    buffer[bufferIndex++] = (standbyFreq.freqKHz >> 8) & 0xFF;
-    buffer[bufferIndex++] = standbyFreq.freqKHz & 0xFF;
-    buffer[bufferIndex++] = (activeFreq.freqMHz >> 8) & 0xFF;
-    buffer[bufferIndex++] = activeFreq.freqMHz & 0xFF;
-    buffer[bufferIndex++] = (activeFreq.freqKHz >> 8) & 0xFF;
-    buffer[bufferIndex++] = activeFreq.freqKHz & 0xFF;
+    buffer[bufferIndex++] = (standbyFreq >> 24) & 0xFF;
+    buffer[bufferIndex++] = (standbyFreq >> 16) & 0xFF;
+    buffer[bufferIndex++] = (standbyFreq >> 8) & 0xFF;
+    buffer[bufferIndex++] = (standbyFreq >> 0) & 0xFF;
 
-    standbyFreq_prev = standbyFreq;
-    activeFreq_prev = activeFreq;
+    buffer[bufferIndex++] = (activeFreq >> 24) & 0xFF;
+    buffer[bufferIndex++] = (activeFreq >> 16) & 0xFF;
+    buffer[bufferIndex++] = (activeFreq >> 8) & 0xFF;
+    buffer[bufferIndex++] = (activeFreq >> 0) & 0xFF;
 
     return bufferIndex;
 }
 
-bool freq_handler_freq_changed(void) {
-    freq_info_check_swap();
-
-    freq_t standbyFreq = freq_info_get(STANDBY_FREQ);
-    freq_t activeFreq = freq_info_get(ACTIVE_FREQ);
-
-    return (standbyFreq_prev.freqKHz != standbyFreq.freqKHz || 
-        standbyFreq_prev.freqMHz != standbyFreq.freqMHz ||
-        activeFreq_prev.freqKHz != activeFreq.freqKHz || 
-        activeFreq_prev.freqMHz != activeFreq.freqMHz);
+freqType_t freq_handler_convert_to_type(uint8_t value) {
+    switch (value) {
+        case 0x00: return COM1;
+        case 0x01: return COM2;
+        case 0x02: return NAV1;
+        case 0x03: return NAV2;
+        case 0x04: return ADF;
+        case 0x05: return DME;
+        case 0x06: return XPDR;
+        default: return COM1;
+    }
 }
 
-packetProcessingResult_t freq_handler_packet_cb(uint8_t *payload, uint16_t payloadLen) {
-    freq_t standbyFreq = {0};
-    freq_t activeFreq = {0};
-
-    standbyFreq.freqMHz = (payload[0] << 8);
-    standbyFreq.freqMHz |= payload[1];
-    standbyFreq.freqKHz = (payload[2] << 8);
-    standbyFreq.freqKHz |= payload[3];
-    activeFreq.freqMHz = (payload[4] << 8);
-    activeFreq.freqMHz |= payload[5];
-    activeFreq.freqKHz = (payload[6] << 8);
-    activeFreq.freqKHz |= payload[7];
-
-    freq_info_set(ACTIVE_FREQ, activeFreq);
-    freq_info_set(STANDBY_FREQ, standbyFreq);
+bool freq_handler_update(void) {
+    freqType_t type = freq_handler_convert_to_type(device_select_get());
     
+    freq_info_check_swap(type);
+
+    return freq_info_update(type);
+}
+
+packetProcessingResult_t freq_handler_packet_cb(uint8_t* payload, uint16_t payloadLen) {
+    freq_t standbyFreq = 0;
+    freq_t activeFreq = 0;
+
+    freqType_t type = freq_handler_convert_to_type(device_select_get());
+
+    standbyFreq = ((uint32_t)payload[0] << 24);
+    standbyFreq |= ((uint32_t)payload[1] << 16);
+    standbyFreq |= ((uint32_t)payload[2] << 8);
+    standbyFreq |= ((uint32_t)payload[3] << 0);
+    activeFreq = ((uint32_t)payload[4] << 24);
+    activeFreq |= ((uint32_t)payload[5] << 16);
+    activeFreq |= ((uint32_t)payload[6] << 8);
+    activeFreq |= ((uint32_t)payload[7] << 0);
+
+    freq_info_set(type, ACTIVE_FREQ, activeFreq);
+    freq_info_set(type, STANDBY_FREQ, standbyFreq);
+
     return PROCESS_COMPLETE;
 }
