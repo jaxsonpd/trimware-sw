@@ -48,7 +48,7 @@ freq_t dme1StandbyFreq = 118000;
  */
 void update_freq_value(freq_t* freq, int8_t fineAdjust, int8_t coarseAdjust, freq_t maxFreq, freq_t minFreq) {
     freq_t temp = *freq + (coarseAdjust * MHz_STEP) * MHz_OFFSET
-                    + (fineAdjust *KHz_OFFSET) * KHz_OFFSET;
+                    + (fineAdjust * KHz_STEP) * KHz_OFFSET;
     
     if (temp > maxFreq) {
         temp = minFreq - (maxFreq - temp - 1);
