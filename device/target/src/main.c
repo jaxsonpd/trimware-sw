@@ -68,7 +68,7 @@ int main(void) {
     sei();
 
     while (true) {
-        if (freq_handler_freq_changed()) {
+        if (freq_handler_update()) {
             uint8_t payloadBuf[10] = { 0 };
             uint16_t payloadSize = freq_handler_packet_assemble(payloadBuf);
 
@@ -94,6 +94,6 @@ int main(void) {
             }
         }
 
-        delay_ms(100);
+        delay_ms(10);
     }
 }
