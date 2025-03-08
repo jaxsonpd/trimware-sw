@@ -32,6 +32,8 @@ uint16_t freq_handler_packet_assemble(uint8_t* buffer) {
 
     uint8_t bufferIndex = 0;
 
+    buffer[bufferIndex++] = (uint8_t)type;
+
     buffer[bufferIndex++] = (standbyFreq >> 24) & 0xFF;
     buffer[bufferIndex++] = (standbyFreq >> 16) & 0xFF;
     buffer[bufferIndex++] = (standbyFreq >> 8) & 0xFF;
@@ -70,16 +72,16 @@ packetProcessingResult_t freq_handler_packet_cb(uint8_t* payload, uint16_t paylo
     freq_t standbyFreq = 0;
     freq_t activeFreq = 0;
 
-    freqType_t type = freq_handler_convert_to_type(device_select_get());
+    freqType_t type = (freqType_t)payload[0];
 
-    standbyFreq = ((uint32_t)payload[0] << 24);
-    standbyFreq |= ((uint32_t)payload[1] << 16);
-    standbyFreq |= ((uint32_t)payload[2] << 8);
-    standbyFreq |= ((uint32_t)payload[3] << 0);
-    activeFreq = ((uint32_t)payload[4] << 24);
-    activeFreq |= ((uint32_t)payload[5] << 16);
-    activeFreq |= ((uint32_t)payload[6] << 8);
-    activeFreq |= ((uint32_t)payload[7] << 0);
+    standbyFreq = ((uint32_t)payload[1] << 24);
+    standbyFreq |= ((uint32_t)payload[2] << 16);
+    standbyFreq |= ((uint32_t)payload[3] << 8);
+    standbyFreq |= ((uint32_t)payload[4] << 0);
+    activeFreq = ((uint32_t)payload[5] << 24);
+    activeFreq |= ((uint32_t)payload[6] << 16);
+    activeFreq |= ((uint32_t)payload[7] << 8);
+    activeFreq |= ((uint32_t)payload[8] << 0);
 
     freq_info_set(type, ACTIVE_FREQ, activeFreq);
     freq_info_set(type, STANDBY_FREQ, standbyFreq);
