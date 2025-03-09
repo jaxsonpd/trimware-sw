@@ -16,7 +16,7 @@
 #include "freq_info.h"
 
 #define MINIMUM_FREQ 108000
-#define MAXIMUM_FREQ 137000
+#define MAXIMUM_FREQ 137999
 
 #define MHz_STEP 1
 #define KHz_STEP 25
@@ -51,9 +51,9 @@ void update_freq_value(freq_t* freq, int8_t fineAdjust, int8_t coarseAdjust, fre
                     + (fineAdjust * KHz_STEP) * KHz_OFFSET;
     
     if (temp > maxFreq) {
-        temp = minFreq - (maxFreq - temp - 1);
+        temp = minFreq + (maxFreq - temp + 1);
     } else if (temp < minFreq) {
-        temp = maxFreq + (minFreq - temp - 1);
+        temp = maxFreq - (minFreq - temp - 1);
     }
     
     *freq = temp;    
