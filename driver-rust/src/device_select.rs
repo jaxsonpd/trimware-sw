@@ -16,6 +16,7 @@ pub fn convert_to_device(number: u8) -> MSFSRadioDevices {
         1 => MSFSRadioDevices::COM2,
         2 => MSFSRadioDevices::NAV1,
         3 => MSFSRadioDevices::NAV2,
+        6 => MSFSRadioDevices::XPDR,
         _ => MSFSRadioDevices::COM1,
     }
 }
@@ -46,6 +47,7 @@ impl PacketHandler for DeviceSelectHandler {
             1 => self.selected_device = MSFSRadioDevices::COM2,
             2 => self.selected_device = MSFSRadioDevices::NAV1,
             3 => self.selected_device = MSFSRadioDevices::NAV2,
+            6 => self.selected_device = MSFSRadioDevices::XPDR,
             _ => println!("Unknown device: {}", packet_device),
         }
 
