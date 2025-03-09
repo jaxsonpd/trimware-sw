@@ -2,6 +2,22 @@
 
 See device/target/libs/custom_can_protocol/README.md for more information/
 
+### Radio Devices
+
+- COM1 = 0
+  - u32 frequency in kHz, active and standby, 108 to 137.999 MHz, 25KHz step
+- COM2
+  - u32 frequency in kHz, active and standby, 108 to 137.999 MHz, 25KHz step
+- NAV1
+  - u32 frequency in kHz, active and standby, 108.0 to 117.95 MHz, 50KHz step
+- NAV2
+  - u32 frequency in kHz, active and standby, 108.0 to 117.95 MHz, 50KHz step
+- ADF
+- DME
+- XPDR
+  - 4 digit BCD only active. Octet limited
+
+
 ## Protocol Definitions
 
 ### Commands
@@ -30,12 +46,5 @@ Command: Selected Radio Device
 bytes:
 
 - Radio Device Type
-  - COM1 = 0
-  - COM2
-  - NAV1
-  - NAV2
-  - ADF
-  - DME
-  - XPDR
 
 The device type can be requested by just sending an empty packet.
