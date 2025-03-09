@@ -15,11 +15,17 @@
 
 #include "freq_info.h"
 
-#define MINIMUM_FREQ 108000
-#define MAXIMUM_FREQ 137999
+#define COM_MINIMUM_FREQ 108000
+#define COM_MAXIMUM_FREQ 137999
+
+#define NAV_MINIMUM_FREQ 108000
+#define NAV_MAXIMUM_FREQ 117950
+
+#define MAX_XPDR_VALUE 7777
 
 #define MHz_STEP 1
 #define KHz_STEP 25
+#define NAV_KHz_STEP 50
 
 #define MHz_OFFSET 1000
 #define KHz_OFFSET 1
@@ -40,15 +46,17 @@ freq_t adf1StandbyFreq = 118000;
 freq_t dme1ActiveFreq = 118000;
 freq_t dme1StandbyFreq = 118000;
 
+freq_t xpdrValue = 7000;
+
 /** 
  * @brief update a spesific frequency value
  * @param 
  * 
  * @return 
  */
-void update_freq_value(freq_t* freq, int8_t fineAdjust, int8_t coarseAdjust, freq_t maxFreq, freq_t minFreq) {
+void update_freq_value(freq_t* freq, int8_t fineAdjust, int8_t coarseAdjust, freq_t maxFreq, freq_t minFreq, uint32_t khz_step) {
     freq_t temp = *freq + (coarseAdjust * MHz_STEP) * MHz_OFFSET
-                    + (fineAdjust * KHz_STEP) * KHz_OFFSET;
+                    + (fineAdjust * khz_step) * KHz_OFFSET;
     
     if (temp > maxFreq) {
         temp = minFreq + (temp - maxFreq + 1);
@@ -72,6 +80,7 @@ freq_t freq_info_get(freqType_t freqType, freqOption_t freqOption) {
         case COM2: return com2ActiveFreq;
         case NAV1: return nav1ActiveFreq;
         case NAV2: return nav2ActiveFreq;
+        case XPDR: return xpdrValue;
         default:
             break;
         }
@@ -89,25 +98,85 @@ freq_t freq_info_get(freqType_t freqType, freqOption_t freqOption) {
     return 0;
 }
 
+#include <stdio.h>
+#include <stdint.h>
+
+uint32_t increment_octal(uint32_t octal, uint32_t increment, uint32_t second_msd_increment) {
+    uint32_t decimal = 0, power = 1, temp = octal;
+    
+    // Convert octal to decimal
+    while (temp > 0) {
+        decimal += (temp % 10) * power;
+        temp /= 10;
+        power *= 8;
+    }
+    
+    // Increment in decimal
+    decimal += increment;
+    
+    // Convert back to octal
+    uint32_t new_octal = 0, place = 1;
+    while (decimal > 0) {
+        new_octal += (decimal % 8) * place;
+        decimal /= 8;
+        place *= 10;
+    }
+    
+    // Modify the second most significant digit and roll over to first digit if needed
+    uint32_t modified_octal = new_octal;
+    uint32_t divisor = 100; // Target the second most significant digit
+    uint32_t digit = (modified_octal / divisor) % 10;
+    digit += second_msd_increment;
+    
+    if (digit >= 8) { // Roll over to first digit
+        uint32_t first_digit_divisor = 1000; // Assuming a 4-digit octal number
+        uint32_t first_digit = (modified_octal / first_digit_divisor) % 10;
+        first_digit = (first_digit + (digit / 8)) % 8;
+        digit %= 8;
+        modified_octal = (modified_octal % first_digit_divisor) + (first_digit * first_digit_divisor);
+    }
+    
+    modified_octal = modified_octal - ((modified_octal / divisor) % 10) * divisor + digit * divisor;
+    
+    return modified_octal;
+}
+
+
 bool freq_info_update(freqType_t freqType) {
     int8_t fineAdjust = freq_input_get(FREQ_FINE_INPUT);
     int8_t coarseAdjust = freq_input_get(FREQ_COURSE_INPUT);
-
+    
+    uint32_t value;
     switch (freqType) {
     case COM1:
         update_freq_value(&com1StandbyFreq, fineAdjust, coarseAdjust,
-            MAXIMUM_FREQ, MINIMUM_FREQ);
+            COM_MAXIMUM_FREQ, COM_MINIMUM_FREQ, KHz_STEP);
         break;
     case COM2:
         update_freq_value(&com2StandbyFreq, fineAdjust, coarseAdjust,
-            MAXIMUM_FREQ, MINIMUM_FREQ);
+            COM_MAXIMUM_FREQ, COM_MINIMUM_FREQ, KHz_STEP);
+        break;
     case NAV1:
-            update_freq_value(&nav1StandbyFreq, fineAdjust, coarseAdjust,
-                MAXIMUM_FREQ, MINIMUM_FREQ);
-            break;
+        update_freq_value(&nav1StandbyFreq, fineAdjust, coarseAdjust,
+            NAV_MAXIMUM_FREQ, NAV_MINIMUM_FREQ, NAV_KHz_STEP);
+        break;
     case NAV2:
         update_freq_value(&nav2StandbyFreq, fineAdjust, coarseAdjust,
-            MAXIMUM_FREQ, MINIMUM_FREQ);
+            NAV_MAXIMUM_FREQ, NAV_MINIMUM_FREQ, NAV_KHz_STEP);
+        break;
+    case XPDR:
+        value = increment_octal((uint32_t)xpdrValue, (uint32_t)fineAdjust, (uint32_t)coarseAdjust);
+        
+        if (value > MAX_XPDR_VALUE) {
+            value -= MAX_XPDR_VALUE;
+            if (value > MAX_XPDR_VALUE) {
+                value = 0;
+            }
+        }
+
+        xpdrValue = value;
+
+        break;
     default:
         break;
     }
