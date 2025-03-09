@@ -74,8 +74,9 @@ void freq_info_set(freqType_t freqType, freqOption_t freqOption, freq_t freqValu
  * @brief Check to swap the active and standby frequencies
  * @param freqType the frequency to swap if true
  * 
+ * @return true if the frequencies have been swapped
  */
-void freq_info_check_swap(freqType_t freqType);
+bool freq_info_check_swap(freqType_t freqType);
 
 /**
  * @brief Swap the active and standby frequencies
