@@ -51,7 +51,7 @@ void update_freq_value(freq_t* freq, int8_t fineAdjust, int8_t coarseAdjust, fre
                     + (fineAdjust * KHz_STEP) * KHz_OFFSET;
     
     if (temp > maxFreq) {
-        temp = minFreq + (maxFreq - temp + 1);
+        temp = minFreq + (temp - maxFreq + 1);
     } else if (temp < minFreq) {
         temp = maxFreq - (minFreq - temp - 1);
     }
