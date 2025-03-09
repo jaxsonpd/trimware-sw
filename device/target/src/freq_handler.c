@@ -26,9 +26,12 @@ int freq_handler_init(void) {
 
 uint16_t freq_handler_packet_assemble(uint8_t* buffer) {
     freqType_t type = freq_handler_convert_to_type(device_select_get());
-
-    freq_t standbyFreq = freq_info_get(type, STANDBY_FREQ);
-    freq_t activeFreq = freq_info_get(type, ACTIVE_FREQ);
+    
+    freq_t standbyFreq = 0;
+    freq_t activeFreq = 0;
+    
+    standbyFreq = freq_info_get(type, STANDBY_FREQ);
+    activeFreq = freq_info_get(type, ACTIVE_FREQ);
 
     uint8_t bufferIndex = 0;
 
