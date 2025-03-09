@@ -36,10 +36,16 @@ impl PacketHandler for FreqHandler<'_> {
                                 + ((packet.payload[7] as u64) << 8)
                                 + ((packet.payload[8] as u64) << 0);
 
-        active_freq *= 1000;
-        standby_freq *= 1000;
-        
-        println!("Set frequency Active: {}, Standby: {} to device {:?}", active_freq/1000, standby_freq/1000, radio_type);
+        if radio_type == MSFSRadioDevices::XPDR {
+            let xpdr_value = active_freq;
+            println!("XPDR value set {}", xpdr_value);
+        } else {
+            active_freq *= 1000;
+            standby_freq *= 1000;
+            println!("Set frequency Active: {}, Standby: {} to device {:?}", active_freq/1000, standby_freq/1000, radio_type);
+
+        }
+            
 
         match self.msfs_connection.update_freq(&radio_type, &MSFSFreqOptions::Active, active_freq) {
             Ok(_e) => {
@@ -55,6 +61,7 @@ impl PacketHandler for FreqHandler<'_> {
                 println!("Error setting standby frequency: {:?}", e);
             }
         };
+
 
         Ok(())
     }

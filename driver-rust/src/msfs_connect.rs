@@ -9,7 +9,7 @@ pub enum MSFSFreqOptions {
     Standby,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum MSFSRadioDevices {
     COM1,
     COM2,
@@ -35,6 +35,7 @@ pub struct MSFSComms<'a> {
     event_nav1_standby_set: u32,
     event_nav2_active_set: u32,
     event_nav2_standby_set: u32,
+    event_xpndr_set: u32
 }
 
 #[data_definition]
@@ -64,6 +65,21 @@ struct FrequencyData {
     #[name = "COM ACTIVE FREQUENCY:2"]
     #[unit = "Frequency"]
     com2_active_frequency: f64,
+}
+
+fn u64_to_bcd16(value: u64) -> u64 {
+    let mut bcd: u64 = 0;
+    let mut shift = 0;
+    let mut num = value;
+
+    while num > 0 {
+        let digit = num % 10;
+        bcd |= (digit as u64) << shift;
+        num /= 10;
+        shift += 4;
+    }
+
+    bcd
 }
 
 impl MSFSComms<'_> {
@@ -110,6 +126,7 @@ impl MSFSComms<'_> {
         let event_nav1_standby_set: u32 = MSFSComms::add_event(&mut sim, "NAV1_STBY_SET_HZ");
         let event_nav2_active_set: u32 = MSFSComms::add_event(&mut sim, "NAV2_RADIO_SET_HZ");
         let event_nav2_standby_set: u32 = MSFSComms::add_event(&mut sim, "NAV2_STBY_SET_HZ");
+        let event_xpndr_set: u32 = MSFSComms::add_event(&mut sim, "XPNDR_SET");
         
         let result: Result<(), msfs::sim_connect::HResult> = sim.request_data_on_sim_object::<FrequencyData>(0, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame);
         print!("result {:?}", result);
@@ -124,6 +141,7 @@ impl MSFSComms<'_> {
             event_nav1_standby_set,
             event_nav2_active_set,
             event_nav2_standby_set,
+            event_xpndr_set,
         }
     }
 
@@ -146,22 +164,22 @@ impl MSFSComms<'_> {
 
         match (device, option) {
             (MSFSRadioDevices::COM1, MSFSFreqOptions::Active) => event = self.event_com1_active_set,
-            (MSFSRadioDevices::COM1, MSFSFreqOptions::Standby) => {
-                event = self.event_com1_standby_set
-            }
+            (MSFSRadioDevices::COM1, MSFSFreqOptions::Standby) => event = self.event_com1_standby_set,
             (MSFSRadioDevices::COM2, MSFSFreqOptions::Active) => event = self.event_com2_active_set,
-            (MSFSRadioDevices::COM2, MSFSFreqOptions::Standby) => {
-                event = self.event_com2_standby_set
-            }
+            (MSFSRadioDevices::COM2, MSFSFreqOptions::Standby) => event = self.event_com2_standby_set,
             (MSFSRadioDevices::NAV1, MSFSFreqOptions::Active) => event = self.event_nav1_active_set,
-            (MSFSRadioDevices::NAV1, MSFSFreqOptions::Standby) => {
-                event = self.event_nav1_standby_set
-            }
+            (MSFSRadioDevices::NAV1, MSFSFreqOptions::Standby) => event = self.event_nav1_standby_set,
             (MSFSRadioDevices::NAV2, MSFSFreqOptions::Active) => event = self.event_nav2_active_set,
-            (MSFSRadioDevices::NAV2, MSFSFreqOptions::Standby) => {
-                event = self.event_nav2_standby_set
-            }
+            (MSFSRadioDevices::NAV2, MSFSFreqOptions::Standby) => event = self.event_nav2_standby_set,
+            (MSFSRadioDevices::XPDR, MSFSFreqOptions::Active) => event = self.event_xpndr_set,
             _ => return Err(MSFSCommunicatorError::InvalidDevice),
+        }
+        let mut freq = freq;
+
+        if event == self.event_xpndr_set {
+            // Convert to BCD16
+            freq = u64_to_bcd16(freq);
+            println!("Setting XPDR to {}", freq);
         }
 
         if let Err(e) = self
