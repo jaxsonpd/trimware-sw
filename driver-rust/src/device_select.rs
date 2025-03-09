@@ -12,10 +12,10 @@ pub struct DeviceSelectHandler {
 
 pub fn convert_to_device(number: u8) -> MSFSRadioDevices {
     match number {
-        1 => MSFSRadioDevices::COM1,
-        2 => MSFSRadioDevices::COM2,
-        3 => MSFSRadioDevices::NAV1,
-        4 => MSFSRadioDevices::NAV2,
+        0 => MSFSRadioDevices::COM1,
+        1 => MSFSRadioDevices::COM2,
+        2 => MSFSRadioDevices::NAV1,
+        3 => MSFSRadioDevices::NAV2,
         _ => MSFSRadioDevices::COM1,
     }
 }

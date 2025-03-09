@@ -166,7 +166,7 @@ impl MSFSComms<'_> {
 
         if let Err(e) = self
             .sim_connect
-            .transmit_client_event(0, event, freq as sys::DWORD)
+            .transmit_client_event(SIMCONNECT_OBJECT_ID_USER, event, freq as sys::DWORD)
         {
             eprintln!("Failed to transmit event: {:?}", e);
         }
