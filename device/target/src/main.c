@@ -94,6 +94,6 @@ int main(void) {
             }
         }
 
-        delay_ms(1000);
+        delay_ms(50);
     }
 }

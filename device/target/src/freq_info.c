@@ -102,11 +102,11 @@ bool freq_info_update(freqType_t freqType) {
         update_freq_value(&com2StandbyFreq, fineAdjust, coarseAdjust,
             MAXIMUM_FREQ, MINIMUM_FREQ);
     case NAV1:
-            update_freq_value(&com1StandbyFreq, fineAdjust, coarseAdjust,
+            update_freq_value(&nav1StandbyFreq, fineAdjust, coarseAdjust,
                 MAXIMUM_FREQ, MINIMUM_FREQ);
             break;
     case NAV2:
-        update_freq_value(&com2StandbyFreq, fineAdjust, coarseAdjust,
+        update_freq_value(&nav2StandbyFreq, fineAdjust, coarseAdjust,
             MAXIMUM_FREQ, MINIMUM_FREQ);
     default:
         break;
