@@ -98,7 +98,10 @@ freq_t freq_info_get(freqType_t freqType, freqOption_t freqOption) {
     return 0;
 }
 
-uint32_t increment_octal(uint32_t octal, uint32_t increment) {
+#include <stdio.h>
+#include <stdint.h>
+
+uint32_t increment_octal(uint32_t octal, uint32_t increment, uint32_t second_msd_increment) {
     uint32_t decimal = 0, power = 1, temp = octal;
     
     // Convert octal to decimal
@@ -119,8 +122,25 @@ uint32_t increment_octal(uint32_t octal, uint32_t increment) {
         place *= 10;
     }
     
-    return new_octal;
+    // Modify the second most significant digit and roll over to first digit if needed
+    uint32_t modified_octal = new_octal;
+    uint32_t divisor = 100; // Target the second most significant digit
+    uint32_t digit = (modified_octal / divisor) % 10;
+    digit += second_msd_increment;
+    
+    if (digit >= 8) { // Roll over to first digit
+        uint32_t first_digit_divisor = 1000; // Assuming a 4-digit octal number
+        uint32_t first_digit = (modified_octal / first_digit_divisor) % 10;
+        first_digit = (first_digit + (digit / 8)) % 8;
+        digit %= 8;
+        modified_octal = (modified_octal % first_digit_divisor) + (first_digit * first_digit_divisor);
+    }
+    
+    modified_octal = modified_octal - ((modified_octal / divisor) % 10) * divisor + digit * divisor;
+    
+    return modified_octal;
 }
+
 
 bool freq_info_update(freqType_t freqType) {
     int8_t fineAdjust = freq_input_get(FREQ_FINE_INPUT);
@@ -145,7 +165,7 @@ bool freq_info_update(freqType_t freqType) {
             NAV_MAXIMUM_FREQ, NAV_MINIMUM_FREQ, NAV_KHz_STEP);
         break;
     case XPDR:
-        value = increment_octal((uint32_t)xpdrValue, fineAdjust);
+        value = increment_octal((uint32_t)xpdrValue, (uint32_t)fineAdjust, (uint32_t)coarseAdjust);
         
         if (value > MAX_XPDR_VALUE) {
             value -= MAX_XPDR_VALUE;
