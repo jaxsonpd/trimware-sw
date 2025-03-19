@@ -22,6 +22,10 @@
 #include "custom_can_protocol/packet_handler.h"
 #include "custom_can_protocol/packet_processing.h"
 
+#include "pin.h"
+
+#include "TM1638.h"
+
 #include "freq_handler.h"
 #include "device_select.h"
 
@@ -67,33 +71,53 @@ int main(void) {
     setup();
     sei();
 
+    struct TM1638Device disp2 = {
+        .clockPin = DISP_CLK,
+        .dataPin = DISP_DATA,
+        .stbPin = DISP_2_SELECT,
+        .name = "Display 2"
+    };
+
+    int result = tm1638_init(disp2);
+    printf("TM1638 init result: %d\n", result);
+
+    delay_ms(1000);
+
+    int write_result = 0;
+    write_result = tm1638_write(disp2, 0x00);
+    printf("TM1638 write result: %d\n", write_result);
+
     while (true) {
-        if (freq_handler_update()) {
-            uint8_t payloadBuf[10] = { 0 };
-            uint16_t payloadSize = freq_handler_packet_assemble(payloadBuf);
 
-            packet_send(putchar, payloadBuf, payloadSize, 0x01);
-        }
-
-        if (device_select_update()) {
-            uint8_t payloadBuf[5] = { 0 };
-            uint16_t payloadLen = device_select_packet_assemble(payloadBuf);
-
-            packet_send(putchar, payloadBuf, payloadLen, 0x04);
-        }
-
-        uint8_t readBuf[50];
-        uint16_t length = packet_receive(getc_new, readBuf);
-
-
-        if (length > 0) {
-            packetProcessingResult_t result = packet_processing_process(readBuf, length);
-
-            if (result != PROCESS_COMPLETE) {
-                printf("Packet processing error: %d\n", result);
-            }
-        }
-
-        delay_ms(50);
     }
+
+    // while (true) {
+    //     if (freq_handler_update()) {
+    //         uint8_t payloadBuf[10] = { 0 };
+    //         uint16_t payloadSize = freq_handler_packet_assemble(payloadBuf);
+
+    //         packet_send(putchar, payloadBuf, payloadSize, 0x01);
+    //     }
+
+    //     if (device_select_update()) {
+    //         uint8_t payloadBuf[5] = { 0 };
+    //         uint16_t payloadLen = device_select_packet_assemble(payloadBuf);
+
+    //         packet_send(putchar, payloadBuf, payloadLen, 0x04);
+    //     }
+
+    //     uint8_t readBuf[50];
+    //     uint16_t length = packet_receive(getc_new, readBuf);
+
+
+    //     if (length > 0) {
+    //         packetProcessingResult_t result = packet_processing_process(readBuf, length);
+
+    //         if (result != PROCESS_COMPLETE) {
+    //             printf("Packet processing error: %d\n", result);
+    //         }
+    //     }
+
+    //     delay_ms(50);
+    // }
 }
