@@ -33,10 +33,11 @@ int tm1638_init(struct TM1638Device device);
  * @brief Write to the display a value
  * @param device the device struct to write to
  * @param value the value to write where each hex digit is the displayed value
+ * @param format the format to use ether "%x" or "%d"
  * 
  * @return 0 if successful
  */
-int tm1638_write(struct TM1638Device device, uint32_t value);
+int tm1638_write(struct TM1638Device device, uint32_t value, char* format);
 
 
 #endif // TM1638_H

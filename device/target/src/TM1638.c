@@ -18,88 +18,85 @@
 
 #define BIT_TIME_US 1000 // Time taken for one bit
 
-#define SET_WRITE_AUTO_ADDR_CMD 0b01000100 // Put the device into write data with fixed address mode
-#define DISPLAY_ON_10_16 0b10001101 // Turn the display on and use 10/16 pulse widths
-#define DISPLAY_OFF_1_16 0b10000000
+#define DISP_OFF_BYTE 0x00
+#define DISP_ON_BYTE 0x08
 
-// Digit registers
-#define C0H 0b11000000
-#define C1H 0b11000001
-#define C2H 0b11000010
-#define C3H 0b11000011
-#define C4H 0b11000100
-#define C5H 0b11000101
+#define DATA_BYTE 0x40
+#define CONTROL_BYTE 0x80
+#define ADDR_BYTE 0xC0
+
+#define WRITE_DATA_BYTE 0x00
+#define AUTO_ADDRESS_BYTE 0x00
+#define NORMAL_MODE_BYTE 0x00
+#define TEST_MODE_BYTE 0x08
+#define FIXED_ADDRESS_BYTE 0x04
 
 // Digits
-#define D0 0b00111011
-#define D1 0b00000110
-#define D2 0b01011011
-#define D3 0b01100110
-#define D4 0b01100001
-#define D5 0b00110011
-#define D6 0b00110111
-#define D7 0b00000000
+const uint8_t HexTo7Seg[40] =
+{
+  0x3F, // 0
+  0x06, // 1
+  0x5B, // 2
+  0x4F, // 3
+  0x66, // 4
+  0x6D, // 5
+  0x7D, // 6
+  0x07, // 7
+  0x7F, // 8
+  0x6F, // 9
+  0x77, // A
+  0x7c, // b
+  0x39, // C
+  0x5E, // d
+  0x79, // E
+  0x71, // F
+  0x6F, // g
+  0x3D, // G
+  0x74, // h
+  0x76, // H
+  0x05, // i
+  0x06, // I
+  0x0D, // j
+  0x30, // l
+  0x38, // L
+  0x54, // n
+  0x37, // N
+  0x5C, // o
+  0x3F, // O
+  0x73, // P
+  0x67, // q
+  0x50, // r
+  0x6D, // S
+  0x78, // t
+  0x1C, // u
+  0x3E, // U
+  0x66, // y
+  0x08, // _
+  0x40, // -
+  0x01  // Overscore
+};
 
 static void send_start(struct TM1638Device device) {
-    GPIO_pin_init(device.stbPin, INPUT_NO_PULLUP);
-    GPIO_pin_init(device.clockPin, INPUT_NO_PULLUP);
-    GPIO_pin_init(device.dataPin, INPUT_NO_PULLUP);
-
-    delay_us(BIT_TIME_US / 2);
-
     GPIO_set_output(device.stbPin, false);
     GPIO_pin_init(device.stbPin, OUTPUT);
-    GPIO_set_output(device.dataPin, false);
-    GPIO_pin_init(device.dataPin, OUTPUT);
-
-    delay_us(BIT_TIME_US / 2);
-    GPIO_set_output(device.clockPin, false);
-    GPIO_pin_init(device.clockPin, OUTPUT);
-
-
 }
 
 static void send_byte(struct TM1638Device device, uint8_t byte) {
     GPIO_pin_init(device.dataPin, OUTPUT);
     GPIO_pin_init(device.clockPin, OUTPUT);
-    GPIO_set_output(device.clockPin, false);
 
     for (uint8_t i = 0; i < 8; i++) {
-        delay_us(BIT_TIME_US / 4);
+        GPIO_set_output(device.clockPin, false);
+        delay_us(BIT_TIME_US / 2);
         GPIO_set_output(device.dataPin, byte & (1 << (i)));
-        delay_us(BIT_TIME_US / 4);
         GPIO_set_output(device.clockPin, true);
         delay_us(BIT_TIME_US / 2);
-        GPIO_set_output(device.clockPin, false);
     }
 }
 
 static void send_stop(struct TM1638Device device) {
-    GPIO_set_output(device.clockPin, false);
-    GPIO_set_output(device.stbPin, false);
-    GPIO_set_output(device.dataPin, false);
-    delay_us(BIT_TIME_US / 2);
-
-    GPIO_pin_init(device.clockPin, INPUT_NO_PULLUP);
-    delay_us(BIT_TIME_US / 2);
-    GPIO_pin_init(device.stbPin, INPUT_NO_PULLUP);
-    GPIO_pin_init(device.dataPin, INPUT_NO_PULLUP);
-}
-
-static int get_ack(struct TM1638Device device) {
-    int result = 0;
-    GPIO_set_output(device.dataPin, false);
-    GPIO_pin_init(device.dataPin, INPUT_NO_PULLUP);
-    delay_us(BIT_TIME_US / 2);
-    GPIO_set_output(device.clockPin, true);
-    delay_us(BIT_TIME_US / 4);
-    result = GPIO_get_state(device.dataPin);
-    delay_us(BIT_TIME_US / 4);
-    GPIO_set_output(device.clockPin, false);
-    GPIO_set_output(device.dataPin, false);
-    GPIO_pin_init(device.dataPin, OUTPUT);
-
-    return result;
+    GPIO_set_output(device.stbPin, true);
+    GPIO_pin_init(device.stbPin, OUTPUT);
 }
 
 int tm1638_init(struct TM1638Device device) {
@@ -110,91 +107,84 @@ int tm1638_init(struct TM1638Device device) {
 
     int result = 0;
     send_start(device);
-    send_byte(device, DISPLAY_ON_10_16);
-    result = get_ack(device);
+    send_byte(device, CONTROL_BYTE | DISP_ON_BYTE | 0x3);
     send_stop(device);
-    if (result != 0) {
-        printf("ERROR: Bad ack in display on setting error = 0x%x\n", result);
-    }
-    delay_ms(1000);
-
-    send_start(device);
-    send_byte(device, DISPLAY_OFF_1_16);
-    result = get_ack(device);
-    send_stop(device);
-    if (result != 0) {
-        printf("ERROR: Bad ack in data command setting error = 0x%x\n", result);
-    }
+    printf("Display On\n");
 
     delay_ms(1000);
 
     send_start(device);
-    send_byte(device, DISPLAY_ON_10_16);
-    result = get_ack(device);
+    send_byte(device, CONTROL_BYTE | DISP_OFF_BYTE);
     send_stop(device);
-    if (result != 0) {
-        printf("ERROR: Bad ack in display on setting error = 0x%x\n", result);
-    }
+    printf("Display Off\n");
+
+    delay_ms(1000);
+
+    send_start(device);
+    send_byte(device, CONTROL_BYTE | DISP_ON_BYTE | 0x7);
+    send_stop(device);
+    printf("Display On\n");
 
     return result;
 }
 
 int tm1638_write_digit(struct TM1638Device device, uint8_t digit, uint8_t value) {
-    int result = 0;
+    printf("Writing digit %d with value 0x%x\n", digit, value);
+
+    uint8_t data = DATA_BYTE | WRITE_DATA_BYTE | AUTO_ADDRESS_BYTE | NORMAL_MODE_BYTE;
 
     send_start(device);
-    send_byte(device, DISPLAY_ON_10_16);
-    result = get_ack(device);
+    send_byte(device, data);
     send_stop(device);
-    if (result != 0) {
-        printf("ERROR: Bad ack in display on setting error = 0x%x\n", result);
-    }
+
 
     send_start(device);
-    send_byte(device, SET_WRITE_AUTO_ADDR_CMD);
-    result = get_ack(device);
-    send_stop(device);
-    if (result != 0) {
-        printf("ERROR: Bad ack in display on setting error = 0x%x\n", result);
-    }
+    send_byte(device, ADDR_BYTE | (digit*2));
 
-    send_start(device);
-    send_byte(device, 0b1100000 | (digit*2));
-    send_byte(device, 0b0000000);
-    // send_stop(device);
-
-    switch (value) {
-    case 0:
-        send_byte(device, 0b00111111);
-        break;
-    case 1:
-        send_byte(device, 0b00000110);
-        break;
-    case 2:
-        send_byte(device, 0b01011011);
-    default:
-        break;
-    }
+    uint8_t valueSeg = HexTo7Seg[value];
+    printf("Value: 0x%x\n", valueSeg);
+    send_byte(device, valueSeg);
 
     send_stop(device);
     
     return 0;
 }
 
-int tm1638_write(struct TM1638Device device, uint32_t value) {
+int tm1638_write(struct TM1638Device device, uint32_t value, char* format) {
     printf("Attempting to write to \"%s\" value: 0x%lx\n", device.name, value);
 
-    int result = 0;
-    for (int i = 0; i < 16; i++)
-    {
-        for (int j = 0; j < 6; j++)
+    if ((char)format[1] == (char)"x") {
+        // Hex
+        for (uint8_t i = 6; i > 0; i--)
         {
-            result = tm1638_write_digit(device, j, i);
-            delay_ms(1000);
+            tm1638_write_digit(device, i - 1, value % 16);
+            value /= 16;
         }
-        delay_ms(2000);
+        
+
+    } else {
+        for (uint8_t i = 6; i > 0; i--)
+        {
+            tm1638_write_digit(device, i - 1, value % 10);
+            value /= 10;
+        }
     }
-    printf("Completed write ack result = 0x%x\n", result);
 
     return 0;
 }
+
+// static int get_ack(struct TM1638Device device) {
+//     int result = 0;
+//     GPIO_set_output(device.dataPin, false);
+//     GPIO_pin_init(device.dataPin, INPUT_NO_PULLUP);
+//     delay_us(BIT_TIME_US / 2);
+//     GPIO_set_output(device.clockPin, true);
+//     delay_us(BIT_TIME_US / 4);
+//     result = GPIO_get_state(device.dataPin);
+//     delay_us(BIT_TIME_US / 4);
+//     GPIO_set_output(device.clockPin, false);
+//     GPIO_set_output(device.dataPin, false);
+//     GPIO_pin_init(device.dataPin, OUTPUT);
+
+//     return result;
+// }
