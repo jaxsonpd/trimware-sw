@@ -99,76 +99,87 @@ static void send_stop(struct TM1638Device device) {
     GPIO_pin_init(device.stbPin, OUTPUT);
 }
 
-int tm1638_init(struct TM1638Device device) {
-    GPIO_pin_init(device.dataPin, INPUT_NO_PULLUP);
-    GPIO_pin_init(device.clockPin, INPUT_NO_PULLUP);
-    GPIO_pin_init(device.stbPin, OUTPUT);
-    GPIO_set_output(device.stbPin, true);
+int tm1638_init(struct TM1638Device *device) {
+    GPIO_pin_init(device->dataPin, INPUT_NO_PULLUP);
+    GPIO_pin_init(device->clockPin, INPUT_NO_PULLUP);
+    GPIO_pin_init(device->stbPin, OUTPUT);
+    GPIO_set_output(device->stbPin, true);
 
     int result = 0;
-    send_start(device);
-    send_byte(device, CONTROL_BYTE | DISP_ON_BYTE | 0x3);
-    send_stop(device);
-    printf("Display On\n");
+    send_start(*device);
+    send_byte(*device, CONTROL_BYTE | DISP_ON_BYTE | 0x0);
+    send_stop(*device);
 
     delay_ms(1000);
 
-    send_start(device);
-    send_byte(device, CONTROL_BYTE | DISP_OFF_BYTE);
-    send_stop(device);
-    printf("Display Off\n");
+    send_start(*device);
+    send_byte(*device, CONTROL_BYTE | DISP_OFF_BYTE);
+    send_stop(*device);
 
     delay_ms(1000);
 
-    send_start(device);
-    send_byte(device, CONTROL_BYTE | DISP_ON_BYTE | 0x7);
-    send_stop(device);
-    printf("Display On\n");
+    send_start(*device);
+    send_byte(*device, CONTROL_BYTE | DISP_ON_BYTE | 0x0);
+    send_stop(*device);
 
     return result;
 }
 
-int tm1638_write_digit(struct TM1638Device device, uint8_t digit, uint8_t value) {
-    printf("Writing digit %d with value 0x%x\n", digit, value);
+void tm1638_dot(struct TM1638Device *device, uint8_t digit, bool enable) {
+    if (enable) {
+        device->_dots |= (1 << digit);
+    } else {
+        device->_dots &= ~(1 << digit);
+    }
+}
+
+int tm1638_write_digits(struct TM1638Device *device, uint8_t startingDigit, uint8_t values[], uint8_t valueLen) {
+    // printf("Writing startingDigit %d with value 0x%x\n", startingDigit, value);
 
     uint8_t data = DATA_BYTE | WRITE_DATA_BYTE | AUTO_ADDRESS_BYTE | NORMAL_MODE_BYTE;
 
-    send_start(device);
-    send_byte(device, data);
-    send_stop(device);
+    send_start(*device);
+    send_byte(*device, data);
+    send_stop(*device);
 
 
-    send_start(device);
-    send_byte(device, ADDR_BYTE | (digit*2));
+    send_start(*device);
+    send_byte(*device, ADDR_BYTE | (startingDigit*2));
 
-    uint8_t valueSeg = HexTo7Seg[value];
-    printf("Value: 0x%x\n", valueSeg);
-    send_byte(device, valueSeg);
+    for (uint8_t i = 0; i < valueLen; i++) {
+        uint8_t valueSeg = HexTo7Seg[values[i]];
+        if ((device->_dots >> (startingDigit + i)) & 1) {
+            valueSeg |= (1 << 7);
+        }
+        send_byte(*device, valueSeg);
+        send_byte(*device, 0x0);
+    }
 
-    send_stop(device);
+    send_stop(*device);
     
     return 0;
 }
 
-int tm1638_write(struct TM1638Device device, uint32_t value, char* format) {
-    printf("Attempting to write to \"%s\" value: 0x%lx\n", device.name, value);
-
+int tm1638_write(struct TM1638Device *device, uint32_t value, char *format) {
+    // printf("Attempting to write to \"%s\" value: 0x%lx\n", device.name, value);
+    uint8_t digits[6] = {0};
     if ((char)format[1] == (char)"x") {
         // Hex
-        for (uint8_t i = 6; i > 0; i--)
-        {
-            tm1638_write_digit(device, i - 1, value % 16);
+        
+        for (uint8_t i = 6; i > 0; i--) {
+            digits[i-1] = value % 16;
             value /= 16;
         }
         
 
     } else {
-        for (uint8_t i = 6; i > 0; i--)
-        {
-            tm1638_write_digit(device, i - 1, value % 10);
+        for (uint8_t i = 6; i > 0; i--) {
+            digits[i-1] = value % 10;
             value /= 10;
         }
     }
+
+    tm1638_write_digits(device, 0, digits, 6);
 
     return 0;
 }

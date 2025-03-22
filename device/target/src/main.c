@@ -24,8 +24,7 @@
 
 #include "pin.h"
 
-#include "TM1638.h"
-
+#include "display_handler.h"
 #include "freq_handler.h"
 #include "device_select.h"
 
@@ -49,8 +48,20 @@ void setup(void) {
     printf("Radio: 1\n");
     delay_ms(3000);
 
-    freq_handler_init();
-    device_select_init();
+    int freqHandlerInitResult = freq_handler_init();
+    if (freqHandlerInitResult!= 0) {
+        printf("Error initializing frequency handler: %d\n", freqHandlerInitResult);
+    }
+
+    int deviceSelectInitResult = device_select_init();
+    if (deviceSelectInitResult!= 0) {
+        printf("Error initializing device select: %d\n", deviceSelectInitResult);
+    }
+
+    int displayInitResult = display_handler_init();
+    if (displayInitResult!= 0) {
+        printf("Error initializing display handler: %d\n", displayInitResult);
+    }
 
     struct PacketProcessor freqPacketProcessor = {
         .identifier = 0x01,
@@ -67,30 +78,12 @@ void setup(void) {
     packet_processing_add_callback(channelPacketProcessor);
 }
 
-struct TM1638Device disp2 = {
-    .name = "Display 2"
-};
-
-int display_handler_update(void) {
-    uint8_t selected_device = device_select_get();
-
-    freq_t active = freq_info_get(selected_device, STANDBY_FREQ);
-
-    tm1638_write(disp2, active, "%d");
-    return 0;
-}
-
 
 int main(void) {
     setup();
     sei();
 
-    disp2.clockPin = DISP_CLK;
-    disp2.dataPin = DISP_DATA;
-    disp2.stbPin = DISP_2_SELECT;
-
-    int result = tm1638_init(disp2);
-    printf("TM1638 init result: %d\n", result);
+    
 
     delay_ms(1000);
 
@@ -123,7 +116,7 @@ int main(void) {
 
         display_handler_update();
 
-        delay_ms(50);
+        delay_ms(1);
     }
 
     return 0;

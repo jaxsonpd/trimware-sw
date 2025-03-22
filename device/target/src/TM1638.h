@@ -19,6 +19,9 @@ struct TM1638Device {
     pin_t clockPin; // The clock signal pin
     pin_t stbPin; // The stb signal pin
     char* name;
+
+    // Private
+    uint8_t _dots; // The dots to display 
 };
 
 /** 
@@ -27,7 +30,16 @@ struct TM1638Device {
  * 
  * @return 0 if successful
  */
-int tm1638_init(struct TM1638Device device);
+int tm1638_init(struct TM1638Device *device);
+
+/** 
+ * @brief Enable a dot
+ * @param device the device struct to manupulate
+ * @param digit the digit to change
+ * @param enable true to enable the dot
+ * 
+ */
+void tm1638_dot(struct TM1638Device *device, uint8_t digit, bool enable);
 
 /** 
  * @brief Write to the display a value
@@ -37,7 +49,17 @@ int tm1638_init(struct TM1638Device device);
  * 
  * @return 0 if successful
  */
-int tm1638_write(struct TM1638Device device, uint32_t value, char* format);
+int tm1638_write(struct TM1638Device *device, uint32_t value, char *format);
 
+/** 
+ * @brief Write digits to the display
+ * @param device the device struct to use
+ * @param startingDigit the starting digit to write to
+ * @param values the values to write
+ * @param valueLen the length of the values array
+ * 
+ * @return 0 if successful
+ */
+int tm1638_write_digits(struct TM1638Device *device, uint8_t startingDigit, uint8_t values[], uint8_t valueLen);
 
 #endif // TM1638_H
