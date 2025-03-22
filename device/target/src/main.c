@@ -46,7 +46,6 @@ void setup(void) {
 
     UART_init_stdio(115200);
     printf("Radio: 1\n");
-    delay_ms(3000);
 
     int freqHandlerInitResult = freq_handler_init();
     if (freqHandlerInitResult!= 0) {
@@ -82,10 +81,6 @@ void setup(void) {
 int main(void) {
     setup();
     sei();
-
-    
-
-    delay_ms(1000);
 
     while (true) {
         if (freq_handler_update()) {
