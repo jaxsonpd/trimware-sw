@@ -105,6 +105,7 @@ int tm1638_init(struct TM1638Device* device, pin_t stbPin, pin_t dataPin, pin_t 
     device->clockPin = clockPin;
     device->_dots = 0;
     device->_digits_enables = 0xFF;
+    device->_brightness = 0x0;
 
     GPIO_pin_init(device->dataPin, INPUT_NO_PULLUP);
     GPIO_pin_init(device->clockPin, INPUT_NO_PULLUP);
@@ -203,18 +204,26 @@ int tm1638_write(struct TM1638Device* device, uint32_t value, char* format) {
     return 0;
 }
 
-// static int get_ack(struct TM1638Device device) {
-//     int result = 0;
-//     GPIO_set_output(device.dataPin, false);
-//     GPIO_pin_init(device.dataPin, INPUT_NO_PULLUP);
-//     delay_us(BIT_TIME_US / 2);
-//     GPIO_set_output(device.clockPin, true);
-//     delay_us(BIT_TIME_US / 4);
-//     result = GPIO_get_state(device.dataPin);
-//     delay_us(BIT_TIME_US / 4);
-//     GPIO_set_output(device.clockPin, false);
-//     GPIO_set_output(device.dataPin, false);
-//     GPIO_pin_init(device.dataPin, OUTPUT);
+void tm1638_reset(struct TM1638Device* device) {
+    device->_dots = 0;
+    device->_digits_enables = 0xFF;
 
-//     return result;
-// }
+    tm1638_set_display_state(device, true);
+}
+
+void tm1638_set_display_state(struct TM1638Device* device, bool state) {
+    send_start(*device);
+    if (state) {
+        send_byte(*device, CONTROL_BYTE | DISP_ON_BYTE | device->_brightness);
+    } else {
+        send_byte(*device, CONTROL_BYTE | DISP_OFF_BYTE);
+    }
+    send_stop(*device);
+}
+
+void tm1638_set_brightness(struct TM1638Device* device, uint8_t brightness) {
+    device->_brightness = brightness;
+    send_start(*device);
+    send_byte(*device, CONTROL_BYTE | DISP_ON_BYTE | device->_brightness);
+    send_stop(*device);
+}

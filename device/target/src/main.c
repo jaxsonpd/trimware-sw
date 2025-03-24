@@ -21,6 +21,7 @@
 
 #include "custom_can_protocol/packet_handler.h"
 #include "custom_can_protocol/packet_processing.h"
+#include "avr_extends/uptime.h"
 
 #include "pin.h"
 
@@ -46,6 +47,8 @@ void setup(void) {
 
     UART_init_stdio(115200);
     printf("Radio: 1\n");
+
+    uptime_init();
 
     int freqHandlerInitResult = freq_handler_init();
     if (freqHandlerInitResult!= 0) {
@@ -81,7 +84,8 @@ void setup(void) {
 int main(void) {
     setup();
     sei();
-
+    uint64_t lastFreqUpdate = uptime_ms();
+    uint64_t lastDeviceUpdate = uptime_ms();
     while (true) {
         if (freq_handler_update()) {
             uint8_t payloadBuf[10] = { 0 };
@@ -110,8 +114,6 @@ int main(void) {
         }
 
         display_handler_update();
-
-        delay_ms(1);
     }
 
     return 0;

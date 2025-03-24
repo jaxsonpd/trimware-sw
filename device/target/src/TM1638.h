@@ -23,6 +23,7 @@ struct TM1638Device {
     // Private
     uint8_t _dots; // The dots to display 
     uint8_t _digits_enables; // The digit enables
+    uint8_t _brightness; // The brightness of the display
 };
 
 /**
@@ -74,5 +75,29 @@ int tm1638_write(struct TM1638Device* device, uint32_t value, char* format);
  * @return 0 if successful
  */
 int tm1638_write_digits(struct TM1638Device* device, uint8_t startingDigit, uint8_t values[], uint8_t valueLen);
+
+/** 
+ * @brief Clear the screen turning off all dots and on all digits
+ * @param device the device struct to use
+ * 
+ */
+void tm1638_reset(struct TM1638Device* device);
+
+/** 
+ * @brief Control whether the display is on or off
+ * @param device the device struct to use
+ * @param state true to turn on the display
+ * 
+ */
+void tm1638_set_display_state(struct TM1638Device* device, bool state);
+
+/** 
+ * @brief Control the display brightness
+ * @param device the device struct to use
+ * @param brightness the brightness to set 0-7
+ * 
+ */
+void tm1638_set_brightness(struct TM1638Device* device, uint8_t brightness);
+
 
 #endif // TM1638_H

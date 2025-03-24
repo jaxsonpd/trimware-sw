@@ -17,19 +17,6 @@
 
 #include "display_handler.h"
 
-#define enable_all_digits() tm1638_enable_digit(&disp2, 0, true); \
-                            tm1638_enable_digit(&disp2, 1, true); \
-                            tm1638_enable_digit(&disp2, 2, true); \
-                            tm1638_enable_digit(&disp2, 3, true); \
-                            tm1638_enable_digit(&disp2, 4, true); \
-                            tm1638_enable_digit(&disp2, 5, true); \
-                            tm1638_enable_digit(&disp1, 0, true); \
-                            tm1638_enable_digit(&disp1, 1, true); \
-                            tm1638_enable_digit(&disp1, 2, true); \
-                            tm1638_enable_digit(&disp1, 3, true); \
-                            tm1638_enable_digit(&disp1, 4, true); \
-                            tm1638_enable_digit(&disp1, 5, true);
-
 
 // The left display
 struct TM1638Device disp2 = {
@@ -55,35 +42,70 @@ int display_handler_init(void) {
 }
 
 int display_handler_update(void) {
-    uint8_t selectedDevice = device_select_get();
-    freqType_t deviceType = freq_handler_convert_to_type(selectedDevice);
+    static bool firstRun = true;
+    
+    static freqType_t prevDeviceType = COM1;
+
+    static freq_t prevActive = 0;
+    static freq_t prevStandby = 0;
+
+    freqType_t deviceType = freq_handler_convert_to_type(device_select_get());
 
     freq_t active = freq_info_get(deviceType, ACTIVE_FREQ);
     freq_t standby = freq_info_get(deviceType, STANDBY_FREQ);
 
-    switch (deviceType) {
-    case COM1:
-    case COM2:
-        enable_all_digits();
-        tm1638_enable_dot(&disp2, 2, true);
-        tm1638_enable_dot(&disp1, 2, true);
-        tm1638_write(&disp2, active, "%d");
-        tm1638_write(&disp1, standby, "%d");
-        break;
-    case NAV1:
-    case NAV2:
-        tm1638_enable_dot(&disp2, 2, true);
-        tm1638_enable_dot(&disp1, 2, true);
-        tm1638_enable_digit(&disp2, 5, false);
-        tm1638_enable_digit(&disp1, 5, false);
-        tm1638_write(&disp2, active, "%d");
-        tm1638_write(&disp1, standby, "%d");
-        break;
+    if (firstRun) {
+        tm1638_reset(&disp1);
+        tm1638_reset(&disp2);
+        firstRun = false;
+    }
 
-    case XPDR:
-    
-    default:
-        break;
+    if (prevDeviceType != deviceType) {
+        tm1638_reset(&disp1);
+        tm1638_reset(&disp2);
+        switch (deviceType) {
+            case COM1:
+            case COM2:
+                tm1638_enable_dot(&disp2, 2, true);
+                tm1638_enable_dot(&disp1, 2, true);
+                break;
+            case NAV1:
+            case NAV2:
+                tm1638_enable_dot(&disp2, 2, true);
+                tm1638_enable_dot(&disp1, 2, true);
+                tm1638_enable_digit(&disp2, 5, false);
+                tm1638_enable_digit(&disp1, 5, false);
+                break;
+        
+            case XPDR:
+                tm1638_enable_digit(&disp2, 0, false);
+                tm1638_enable_digit(&disp2, 1, false);
+                tm1638_set_display_state(&disp1, false);
+                break;
+            default:
+                break;
+            }
+
+        prevDeviceType = deviceType;
+    }
+
+    if (prevActive != active || prevStandby != standby) {
+        switch (deviceType) {
+        case COM1:
+        case COM2:
+        case NAV1:
+        case NAV2:
+            tm1638_write(&disp2, active, "%d");
+            tm1638_write(&disp1, standby, "%d");
+            break;
+
+        case XPDR:
+            tm1638_write(&disp2, active, "%d");
+        default:
+            break;
+        }
+        prevActive = active;
+        prevStandby = standby;
     }
     
 
