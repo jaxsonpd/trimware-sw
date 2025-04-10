@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::cell::RefCell;
 
+use crate::msfs_connect;
 use crate::{msfs_connect::MSFSComms, msfs_connect::MSFSFreqOptions, msfs_connect::MSFSRadioDevices};
 use crate::device_select::{DeviceSelectHandler, convert_to_device};
 
@@ -13,12 +14,18 @@ pub struct FreqHandler<'a> {
 
 impl<'a> FreqHandler<'a> {
     pub fn new(device_select_handler: &'a RefCell<DeviceSelectHandler>) -> Self {
+        
         let mut msfs_connection = MSFSComms::new();
         
         FreqHandler {
             msfs_connection: msfs_connection,
             device_select_handler: device_select_handler
         }
+    }
+
+    pub fn get_freq(&mut self) -> Result<u64, Box<dyn Error>> {
+        self.msfs_connection.get_frequency(&MSFSRadioDevices::COM1, &MSFSFreqOptions::Active);
+        Ok(1)
     }
 }
 

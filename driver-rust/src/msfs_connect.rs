@@ -1,5 +1,8 @@
 use std::pin::Pin;
 
+use std::thread;
+use std::time::Duration;
+
 use msfs::sys::{self, BCD16};
 
 use msfs::sim_connect::{SimConnectRecv, SimConnect, data_definition, SIMCONNECT_OBJECT_ID_USER, Period};
@@ -36,6 +39,26 @@ pub struct MSFSComms<'a> {
     event_nav2_active_set: u32,
     event_nav2_standby_set: u32,
     event_xpndr_set: u32
+}
+
+#[derive(Debug)]
+enum MSFSRequestIds {
+    COM1,
+    COM2,
+    NAV1,
+    NAV2,
+    XPDR
+}
+
+#[data_definition]
+#[derive(Debug)]
+struct COM1MSFSRequestData {
+    #[name = "COM ACTIVE FREQUENCY:1"]
+    #[unit = "MHz"]
+    com1_active_frequency: f64,
+    #[name = "COM STANDBY FREQUENCY:1"]
+    #[unit = "MHz"]
+    com1_standby_frequency: f64,
 }
 
 #[data_definition]
@@ -104,17 +127,22 @@ impl MSFSComms<'_> {
     }
 
     pub fn new() -> Self {
-        let mut sim = match SimConnect::open("FLIGHT_SIM_SOFTWARE", |sim, recv| match recv {
-            SimConnectRecv::SimObjectData(event) => match event.dwRequestID {
-                0 => {
-                    println!("{:?}", event.into::<FrequencyData>(sim).unwrap());
+        let mut sim = loop {
+            match SimConnect::open("FLIGHT_SIM_SOFTWARE", |sim, recv| match recv {
+                SimConnectRecv::SimObjectData(event) => match event.dwRequestID {
+                    0 => {
+                        println!("{:?}", event.into::<COM1MSFSRequestData>(sim).unwrap());
+                    }
+                    _ => {}
+                },
+                _ => println!("{:?}", recv),
+            }) {
+                Ok(sim) => break sim,
+                Err(e) => {
+                    println!("Failed to open SimConnect: {:?}. Retrying in 2 seconds...", e);
+                    thread::sleep(Duration::from_secs(2));
                 }
-                _ => {}
-            },
-            _ => println!("{:?}", recv)
-        }) {
-            Ok(sim) => sim,
-            Err(e) => panic!("Error opening SimConnect: {:?}", e),
+            }
         };
 
         // Setup events
@@ -128,7 +156,7 @@ impl MSFSComms<'_> {
         let event_nav2_standby_set: u32 = MSFSComms::add_event(&mut sim, "NAV2_STBY_SET_HZ");
         let event_xpndr_set: u32 = MSFSComms::add_event(&mut sim, "XPNDR_SET");
         
-        let result: Result<(), msfs::sim_connect::HResult> = sim.request_data_on_sim_object::<FrequencyData>(0, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame);
+        let result: Result<(), msfs::sim_connect::HResult> = sim.request_data_on_sim_object::<COM1MSFSRequestData>(MSFSRequestIds::COM1 as u32, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame);
         print!("result {:?}", result);
 
         MSFSComms {
