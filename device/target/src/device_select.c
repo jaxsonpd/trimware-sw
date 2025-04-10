@@ -16,11 +16,9 @@
 #include "custom_can_protocol/packet_processing.h"
 #include "custom_can_protocol/packet_handler.h"
 
-#include "device_select.h"
+#include "pin.h"
 
-#define DEVICE_SELECT_0_PIN PIN(PORTB, 0)
-#define DEVICE_SELECT_1_PIN PIN(PORTB, 1)
-#define DEVICE_SELECT_2_PIN PIN(PORTB, 2)
+#include "device_select.h"
 
 uint8_t selectedDevice_prev = 0;
 

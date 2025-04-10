@@ -212,13 +212,14 @@ void freq_info_set(freqType_t freqType, freqOption_t freqOption, freq_t freqValu
     }
 }
 
-void freq_info_check_swap(freqType_t freqType) {
+bool freq_info_check_swap(freqType_t freqType) {
     FreqButtonState_t freqButtonState = freq_input_button_get(FREQ_FINE_INPUT);
     if (freqButtonState != FREQ_BUTTON_UP_DOWN) {
-        return;
+        return false;
     }
 
     freq_info_swap(freqType);
+    return true;
 }
 
 void freq_info_swap(freqType_t freqType) {

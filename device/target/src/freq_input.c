@@ -14,27 +14,13 @@
 #include <avr/interrupt.h>
 
 #include "avr_extends/GPIO.h"
+#include "pin.h"
+
 #include "freq_input.h"
+
 
 #define STEPS_PER_CLICK 2 // number of encoder steps per division on encoder
 
-#define FINE_BUTTON_PIN_NUM 5
-#define FINE_CHA_PIN_NUM 6
-#define FINE_CHB_PIN_NUM 7
-
-#define COARSE_BUTTON_PIN_NUM 2
-#define COARSE_CHA_PIN_NUM 3
-#define COARSE_CHB_PIN_NUM 4
-
-#define BUTTON_DOWN_VALUE false
-
-#define FINE_BUTTON_PIN PIN(PORTD, FINE_BUTTON_PIN_NUM)
-#define FINE_CHA_PIN PIN(PORTD, FINE_CHA_PIN_NUM)
-#define FINE_CHB_PIN PIN(PORTD, FINE_CHB_PIN_NUM)
-
-#define COARSE_BUTTON_PIN PIN(PORTD, COARSE_BUTTON_PIN_NUM)
-#define COARSE_CHA_PIN PIN(PORTD, COARSE_CHA_PIN_NUM)
-#define COARSE_CHB_PIN PIN(PORTD, COARSE_CHB_PIN_NUM)
 
 // Storage for changes made to the fine encoder
 static volatile int8_t fineChange = 0;

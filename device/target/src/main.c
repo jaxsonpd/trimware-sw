@@ -21,7 +21,11 @@
 
 #include "custom_can_protocol/packet_handler.h"
 #include "custom_can_protocol/packet_processing.h"
+#include "avr_extends/uptime.h"
 
+#include "pin.h"
+
+#include "display_handler.h"
 #include "freq_handler.h"
 #include "device_select.h"
 
@@ -43,10 +47,23 @@ void setup(void) {
 
     UART_init_stdio(115200);
     printf("Radio: 1\n");
-    delay_ms(3000);
 
-    freq_handler_init();
-    device_select_init();
+    uptime_init();
+
+    int freqHandlerInitResult = freq_handler_init();
+    if (freqHandlerInitResult!= 0) {
+        printf("Error initializing frequency handler: %d\n", freqHandlerInitResult);
+    }
+
+    int deviceSelectInitResult = device_select_init();
+    if (deviceSelectInitResult!= 0) {
+        printf("Error initializing device select: %d\n", deviceSelectInitResult);
+    }
+
+    int displayInitResult = display_handler_init();
+    if (displayInitResult!= 0) {
+        printf("Error initializing display handler: %d\n", displayInitResult);
+    }
 
     struct PacketProcessor freqPacketProcessor = {
         .identifier = 0x01,
@@ -63,10 +80,12 @@ void setup(void) {
     packet_processing_add_callback(channelPacketProcessor);
 }
 
+
 int main(void) {
     setup();
     sei();
-
+    uint64_t lastFreqUpdate = uptime_ms();
+    uint64_t lastDeviceUpdate = uptime_ms();
     while (true) {
         if (freq_handler_update()) {
             uint8_t payloadBuf[10] = { 0 };
@@ -94,6 +113,8 @@ int main(void) {
             }
         }
 
-        delay_ms(50);
+        display_handler_update();
     }
+
+    return 0;
 }

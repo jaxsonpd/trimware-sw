@@ -65,10 +65,8 @@ freqType_t freq_handler_convert_to_type(uint8_t value) {
 
 bool freq_handler_update(void) {
     freqType_t type = freq_handler_convert_to_type(device_select_get());
-    
-    freq_info_check_swap(type);
 
-    return freq_info_update(type);
+    return freq_info_update(type) || freq_info_check_swap(type);
 }
 
 packetProcessingResult_t freq_handler_packet_cb(uint8_t* payload, uint16_t payloadLen) {
