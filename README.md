@@ -14,7 +14,11 @@ Editing of a range of frequencies availible on the aircraft. This includes:
 - DME
 - XPDR (Transponder)
 
-Changes are made using dual quadrature encoders and data is transmited using a custom packet format over RS232. A custom PCB is used to house the quadrature encoders, rotatry switch and 12 7-segment displays this can be found in [Flight-Sim-Hardware](https://github.com/jaxsonpd/flight-sim-hardware).
+Changes are made using dual quadrature encoders and data is transmitted using a custom packet format over RS232. A custom PCB is used to house the quadrature encoders, rotary switch and 12 7-segment displays this can be found in [Flight-Sim-Hardware](https://github.com/jaxsonpd/flight-sim-hardware).
+
+Here is an image of the input section of the project showing an active and standby frequency of 118.000 MHz.
+
+![Input Device for Radio](docs/photos/IMG_6265.jpeg)
 
 ## Architecture
 
