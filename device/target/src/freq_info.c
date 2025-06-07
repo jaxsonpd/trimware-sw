@@ -59,9 +59,9 @@ void update_freq_value(freq_t* freq, int8_t fineAdjust, int8_t coarseAdjust, fre
                     + (fineAdjust * khz_step) * KHz_OFFSET;
     
     if (temp > maxFreq) {
-        temp = minFreq + (temp - maxFreq + 1);
+        temp = minFreq + (temp - maxFreq - khz_step);
     } else if (temp < minFreq) {
-        temp = maxFreq - (minFreq - temp - 1);
+        temp = maxFreq - (minFreq - temp - khz_step);
     }
     
     *freq = temp;    
@@ -180,6 +180,8 @@ bool freq_info_update(freqType_t freqType) {
     default:
         break;
     }
+
+    printf("freq_info_set: %lu\n", freq_info_get(freqType, STANDBY_FREQ));
 
     return fineAdjust != 0 || coarseAdjust != 0;
 }
