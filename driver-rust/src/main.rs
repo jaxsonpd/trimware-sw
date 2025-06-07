@@ -69,6 +69,7 @@ fn main() {
                 eprintln!("Error reading packet: {:?}", e);
             }
         }
+        freq_packet_handler.get_freq();
 
         // let mut device_get_packet = device_select_handler.borrow().compose_request_device_packet();
         // device_get_packet.write_to_stream(&mut port);
