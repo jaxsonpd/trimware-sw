@@ -180,9 +180,6 @@ bool freq_info_update(freqType_t freqType) {
     default:
         break;
     }
-
-    printf("freq_info_set: %lu\n", freq_info_get(freqType, STANDBY_FREQ));
-
     return fineAdjust != 0 || coarseAdjust != 0;
 }
 
