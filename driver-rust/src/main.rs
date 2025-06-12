@@ -31,7 +31,7 @@ fn open_serial_port(
 }
 
 fn main() {
-    let port_name = "com3";
+    let port_name = "com9";
     let baud_rate = 115200;
 
     let mut port = match open_serial_port(port_name, baud_rate) {
@@ -53,20 +53,22 @@ fn main() {
     println!("Reading from serial port: {}", port_name);
 
     loop {
-        match Packet::read_from_stream(&mut port) {
-            Ok(packet) => {
-                println!("{:?}", packet);
-                if packet.packet_ident == freq_packet_handler.get_packet_id() {
-                    freq_packet_handler.handle_packet(&packet).unwrap();
-                } else if packet.packet_ident == device_select_handler.borrow().get_packet_id() {
-                    device_select_handler
-                        .borrow_mut()
-                        .handle_packet(&packet)
-                        .unwrap();
+        if port.bytes_to_read().unwrap() > 10 {
+            match Packet::read_from_stream(&mut port) {
+                Ok(packet) => {
+                    println!("{:?}", packet);
+                    if packet.packet_ident == freq_packet_handler.get_packet_id() {
+                        freq_packet_handler.handle_packet(&packet).unwrap();
+                    } else if packet.packet_ident == device_select_handler.borrow().get_packet_id() {
+                        device_select_handler
+                            .borrow_mut()
+                            .handle_packet(&packet)
+                            .unwrap();
+                    }
                 }
-            }
-            Err(e) => {
-                eprintln!("Error reading packet: {:?}", e);
+                Err(e) => {
+                    eprintln!("Error reading packet: {:?}", e);
+                }
             }
         }
         freq_packet_handler.get_freq();
