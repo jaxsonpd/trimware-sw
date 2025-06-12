@@ -45,11 +45,6 @@ fn main() {
     let device_select_handler = RefCell::new(DeviceSelectHandler::new());
     let mut freq_packet_handler = FreqHandler::new(&device_select_handler);
 
-    // let request = device_select_handler
-    //     .borrow_mut()
-    //     .compose_request_device_packet();
-    // let _ = request.write_to_stream(&mut port);
-
     println!("Reading from serial port: {}", port_name);
 
     loop {
@@ -72,10 +67,5 @@ fn main() {
             }
         }
         freq_packet_handler.get_freq();
-
-        // let mut device_get_packet = device_select_handler.borrow().compose_request_device_packet();
-        // device_get_packet.write_to_stream(&mut port);
-
-        // std::thread::sleep(std::time::Duration::from_millis(100));
     }
 }
