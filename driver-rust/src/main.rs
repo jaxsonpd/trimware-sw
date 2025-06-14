@@ -8,6 +8,8 @@ use custom_can_protocol::{Packet, PacketHandler};
 
 mod msfs_connect;
 
+mod sim_wrap;
+
 mod device_select;
 
 use device_select::DeviceSelectHandler;
