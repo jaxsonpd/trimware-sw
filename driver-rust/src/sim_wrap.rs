@@ -2,7 +2,7 @@
 /// 
 /// Author: Jack Duignan (JackpDuignan@gmail.com)
 
-use msfs::{sim_connect::{self, data_definition, Period, SimConnect}, sys::{SIMCONNECT_OBJECT_ID, SIMCONNECT_OBJECT_ID_USER}};
+use msfs::{sim_connect::{self, data_definition, Period, SimConnect}, sys::{SIMCONNECT_OBJECT_ID, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_RECV_SIMOBJECT_DATA}};
 
 use std::{collections::{hash_map, HashMap}, error::Error, f32::consts::E, pin::Pin};
 
@@ -28,11 +28,16 @@ trait SimDataObject {
     /// 
     /// returns an error if it cannot register the request
     fn register_request(&self, sim: &mut Pin<Box<SimConnect<'static>>>, id: u32) -> Result<(), msfs::sim_connect::HResult>;
+
+    /// Get event data from the sim
+    /// 
+    /// event - the event to fetch
+    fn get_event_data(&self, sim: &mut Pin<Box<SimConnect<'static>>>, event: &SIMCONNECT_RECV_SIMOBJECT_DATA) -> Option<Box<dyn SimDataObject>>;
 }
 
 
 #[data_definition]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct FrequencyData {
     #[name = "COM STANDBY FREQUENCY:1"]
     #[unit = "MHz"]
@@ -48,12 +53,22 @@ impl SimDataObject for FrequencyData {
 
         Ok(())
     }
+
+    fn get_event_data(
+        &self,
+        sim: &mut Pin<Box<SimConnect<'static>>>,
+        event: &SIMCONNECT_RECV_SIMOBJECT_DATA
+    ) -> Option<Box<dyn SimDataObject>> {
+        event
+            .into::<FrequencyData>(sim)
+            .map(|data| Box::new(data.clone()) as Box<dyn SimDataObject>)
+    }
 }
 
 
 pub struct SimWrapper {
     sim_object: Pin<Box<sim_connect::SimConnect<'static>>>,
-    // data: Vec<Box<dyn SimDataObject>>,
+    data_objects: Vec<Box<dyn SimDataObject>>,
     event_table: EventIdTable
 }
 
@@ -61,7 +76,8 @@ impl SimWrapper {
     /// Create a new simwrapper and attempt to connect to the sim.
     /// 
     /// name - the name of the sim connection
-    pub fn new(name: String, ) -> Result<Self, Box<dyn std::error::Error>> {
+    /// data_objects - the objects to fetch data from
+    pub fn new(name: String, data_objects: Vec<Box<dyn SimDataObject>>) -> Result<Self, Box<dyn std::error::Error>> {
         let sim = match SimConnect::open(name.as_str(), | _sim, _recv | {} ) {
                 Ok(sim) => sim,
                 Err(e) => {
@@ -71,6 +87,7 @@ impl SimWrapper {
 
         Ok(SimWrapper { 
             sim_object: sim,
+            data_objects:data_objects,
             event_table: EventIdTable::new()
         })
     }
