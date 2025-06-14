@@ -2,8 +2,9 @@
 /// 
 /// Author: Jack Duignan (JackpDuignan@gmail.com)
 
-use msfs::{sim_connect::{self, data_definition, Period, SimConnect}, sys::{SIMCONNECT_OBJECT_ID, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_RECV_SIMOBJECT_DATA}};
+use msfs::{sim_connect::{self, data_definition, Period, SimConnect}, sys::{self, SIMCONNECT_OBJECT_ID, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_RECV_SIMOBJECT_DATA}};
 
+use core::{error, num};
 use std::{collections::{hash_map, HashMap}, error::Error, f32::consts::E, pin::Pin};
 
 /// Hold sim events and their ids for later use 
@@ -18,6 +19,10 @@ impl EventIdTable {
 
     pub fn add(&mut self, name: String, id: u32) {
         self.map.insert(name, id);
+    }
+
+    pub fn get(&mut self, name: String) -> Option<&u32> {
+        self.map.get(&name)
     }
 }
 
@@ -41,10 +46,10 @@ trait SimDataObject {
 struct FrequencyData {
     #[name = "COM STANDBY FREQUENCY:1"]
     #[unit = "MHz"]
-    com1_standby_frequency: f64,
+    com1_standby: f64,
     #[name = "COM ACTIVE FREQUENCY:1"]
     #[unit = "MHz"]
-    com1_active_frequency: f64,
+    com1_active: f64,
 }
 
 impl SimDataObject for FrequencyData {
@@ -87,7 +92,7 @@ impl SimWrapper {
 
         Ok(SimWrapper { 
             sim_object: sim,
-            data_objects:data_objects,
+            data_objects: data_objects,
             event_table: EventIdTable::new()
         })
     }
@@ -100,7 +105,7 @@ impl SimWrapper {
     ///
     /// # Returns
     /// - The instance specific event number
-    fn register_event(sim: &mut Pin<Box<SimConnect<'static>>>, event_name: String) -> Result<u32, Box<dyn std::error::Error>> {
+    fn add_sim_event(sim: &mut Pin<Box<SimConnect<'static>>>, event_name: String) -> Result<u32, Box<dyn std::error::Error>> {
         let event_id: u32 = match sim.map_client_event_to_sim_event(event_name.as_str(), false) {
             Ok(id) => id,
             Err(err) => {
@@ -115,8 +120,8 @@ impl SimWrapper {
     /// set.
     /// 
     /// name - the name of the event to add (must match a simconnect event)
-    pub fn add_event(&mut self, name: String) -> Result<(), Box<dyn std::error::Error>> {
-        match SimWrapper::register_event(&mut self.sim_object, name.clone()) {
+    pub fn register_event(&mut self, name: String) -> Result<(), Box<dyn std::error::Error>> {
+        match SimWrapper::add_sim_event(&mut self.sim_object, name.clone()) {
             Ok(id) => {
                 self.event_table.add(name, id);
             },
@@ -127,4 +132,39 @@ impl SimWrapper {
             
         Ok(())
     }
+
+    /// Write to an event
+    /// 
+    /// name - the name of the event to write to needs to have been added first.
+    pub fn write_event<T>(&mut self, name: String, value: sys::DWORD) -> Result<(), Box<dyn std::error::Error>> {
+        let event_num = match self.event_table.get(name) {
+            Some(num) => *num,
+            None => return Err(Box::from(format!("event {} not in current table try registering it", name)))
+        };
+
+        self
+            .sim_object
+            .transmit_client_event(SIMCONNECT_OBJECT_ID_USER, event_num as sys::DWORD, value)?;
+
+        Ok(())
+    }
+}
+
+pub struct SimFreq {
+    wrapper: SimWrapper
+} 
+
+impl SimFreq {
+    /// Create a new object to comunicate with the sim regarding frequencies
+    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+        let data_objects: Vec<Box<dyn SimDataObject>> = vec![Box::new(FrequencyData{com1_active: 118.000, com1_standby:118.000})];
+        let mut wrapper = SimWrapper::new("Frequency Communication".to_string(), data_objects)?;
+        wrapper.register_event("COM_RADIO_SET_HZ".to_string())?;
+        wrapper.register_event("COM_STBY_RADIO_SET_HZ".to_string())?;
+
+        Ok(SimFreq { wrapper: wrapper })
+    }
+
+    /// Set a specific frequency
+    pub fn set(&self, event)
 }
