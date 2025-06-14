@@ -8,6 +8,8 @@ msfs = {git  = "https://github.com/flybywiresim/msfs-rs.git" }
 serialport = "4.7.0"
 custom_can_protocol = {path = "../device/target/libs/custom-can-protocol/packet-rust/"}
 
+[features]
+sim_tests = []
 
 [target.wasm32-wasi]
 rustflags = [

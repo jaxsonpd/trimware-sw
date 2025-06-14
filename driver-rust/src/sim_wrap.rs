@@ -5,9 +5,11 @@
 use msfs::{sim_connect::{self, data_definition, Period, SimConnect}, sys::{self, SIMCONNECT_OBJECT_ID, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_RECV_SIMOBJECT_DATA}};
 
 use core::{error, num};
-use std::{collections::{hash_map, HashMap}, error::Error, f32::consts::E, pin::Pin};
+use std::{collections::{hash_map, HashMap}, error::Error, f32::consts::E, ops::Deref, pin::Pin};
+use std::fmt::Debug;
 
 /// Hold sim events and their ids for later use 
+#[derive(Debug)]
 pub struct EventIdTable {
     map: HashMap<String, u32>,
 }
@@ -21,22 +23,29 @@ impl EventIdTable {
         self.map.insert(name, id);
     }
 
-    pub fn get(&mut self, name: String) -> Option<&u32> {
-        self.map.get(&name)
+    pub fn get(&mut self, name: String) -> Option<u32> {
+        match self.map.get(&name) {
+            Some(value) => return Some(*value),
+            None => return None
+        }
     }
 }
 
-trait SimDataObject {
+trait SimDataObject: Debug {
     /// Register a request with the simulator to get the data.
     /// 
     /// sim - the simulator connection
+    /// id - the id of the request
     /// 
     /// returns an error if it cannot register the request
     fn register_request(&self, sim: &mut Pin<Box<SimConnect<'static>>>, id: u32) -> Result<(), msfs::sim_connect::HResult>;
 
     /// Get event data from the sim
     /// 
+    /// sim - the simulator connection
     /// event - the event to fetch
+    /// 
+    /// returns an error if it cannot get the data
     fn get_event_data(&self, sim: &mut Pin<Box<SimConnect<'static>>>, event: &SIMCONNECT_RECV_SIMOBJECT_DATA) -> Option<Box<dyn SimDataObject>>;
 }
 
@@ -70,7 +79,7 @@ impl SimDataObject for FrequencyData {
     }
 }
 
-
+#[derive(Debug)]
 pub struct SimWrapper {
     sim_object: Pin<Box<sim_connect::SimConnect<'static>>>,
     data_objects: Vec<Box<dyn SimDataObject>>,
@@ -136,9 +145,9 @@ impl SimWrapper {
     /// Write to an event
     /// 
     /// name - the name of the event to write to needs to have been added first.
-    pub fn write_event<T>(&mut self, name: String, value: sys::DWORD) -> Result<(), Box<dyn std::error::Error>> {
-        let event_num = match self.event_table.get(name) {
-            Some(num) => *num,
+    pub fn write_event(&mut self, name: String, value: sys::DWORD) -> Result<(), Box<dyn std::error::Error>> {
+        let event_num = match self.event_table.get(name.clone()) {
+            Some(num) => num,
             None => return Err(Box::from(format!("event {} not in current table try registering it", name)))
         };
 
@@ -150,6 +159,23 @@ impl SimWrapper {
     }
 }
 
+#[derive(Debug)]
+pub enum FrequencyName {
+    Com1Active,
+    Com1Standby
+}
+
+impl FrequencyName {
+    /// Return the simconnect string name of the frequency
+    fn as_event(&self) -> String {
+        match self {
+            FrequencyName::Com1Active => "COM_RADIO_SET_HZ".to_string(),
+            FrequencyName::Com1Standby => "COM_STBY_RADIO_SET_HZ".to_string()
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct SimFreq {
     wrapper: SimWrapper
 } 
@@ -166,5 +192,57 @@ impl SimFreq {
     }
 
     /// Set a specific frequency
-    pub fn set(&self, event)
+    /// 
+    /// freq_name - the frequency to set
+    /// value - the frequency to set
+    pub fn set(&mut self, freq_name: FrequencyName, value: u32) -> Result<(), Box<dyn std::error::Error>>{
+        self.wrapper.write_event(freq_name.as_event(), value)?;
+
+        Ok(())
+    }
+}
+
+
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_event_table_create() {
+        let table = EventIdTable::new();
+        assert_eq!(table.map.len(), 0);
+    }
+
+    #[test]
+    fn test_event_table_write_read() {
+        let mut table = EventIdTable::new();
+        table.add("TEST".to_string(), 1);
+        assert_eq!(table.get("TEST".to_string()), Some(1));
+    }
+
+    #[test]
+    fn test_event_table_overwrite_read() {
+        let mut table = EventIdTable::new();
+        table.add("TEST".to_string(), 1);
+        table.add("TEST".to_string(), 2);
+        assert_eq!(table.get("TEST".to_string()), Some(2));
+    }
+
+    #[test]
+    fn test_event_table_no_write_read() {
+        let mut table = EventIdTable::new();
+        assert_eq!(table.get("TEST".to_string()), None);
+    }
+
+    // #[cfg(feature = "sim_tests")]
+    #[test]
+    fn test_SimFreq_new() {
+        let freq = SimFreq::new().expect("Check that the sim is open");
+    }
+
+    // #[cfg(feature = "sim_tests")]
+    #[test]
+    fn test_SimFreq_set() {
+        let mut freq = SimFreq::new().expect("Check that the sim is open");
+        freq.set(FrequencyName::Com1Active, 120000).unwrap();
+    }
 }
