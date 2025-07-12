@@ -61,7 +61,7 @@ impl PacketHandler for DeviceSelectHandler {
             _ => println!("Unknown device: {}", packet_device),
         }
 
-        println!("Selected device: {:?}", self.selected_device);
+        println!("Selected device: {:?}", packet_device);
 
         Ok(())
     }

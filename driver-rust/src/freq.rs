@@ -28,6 +28,21 @@ impl<'a> FreqHandler<'a> {
     }
 }
 
+fn u32_to_bcd16(value: u32) -> u32 {
+    let mut bcd: u32 = 0;
+    let mut shift = 0;
+    let mut num = value;
+
+    while num > 0 {
+        let digit = num % 10;
+        bcd |= (digit as u32) << shift;
+        num /= 10;
+        shift += 4;
+    }
+
+    bcd
+}
+
 impl PacketHandler for FreqHandler<'_> {
     fn handle_packet(&mut self, packet: &Packet) -> Result<(), Box<dyn Error>> {
         let radio_type = convert_to_device(packet.payload[0]);
@@ -60,28 +75,31 @@ impl PacketHandler for FreqHandler<'_> {
                 active_name = FrequencyName::Com1Active;
                 standby_name = FrequencyName::Com1Standby;
             }
+            RadioDevices::COM2 => {
+                active_name = FrequencyName::Com2Active;
+                standby_name = FrequencyName::Com2Standby;
+            }
+            RadioDevices::NAV1 => {
+                active_name = FrequencyName::Nav1Active;
+                standby_name = FrequencyName::Nav1Standby;
+            }
+            RadioDevices::NAV2 => {
+                active_name = FrequencyName::Nav2Active;
+                standby_name = FrequencyName::Nav2Standby;
+            }
+            RadioDevices::XPDR => {
+                let xpdr_value = u32_to_bcd16(active_freq);
+                self.sim_frequency_connection.set(FrequencyName::XPDR, xpdr_value)?;
+                return Ok(());
+            }
             _ => {
-                active_name = FrequencyName::Com1Active;
-                standby_name = FrequencyName::Com1Standby;
+                return Ok(());
             }
         }
             
 
-        match self.sim_frequency_connection.set(active_name, active_freq) {
-            Ok(_e) => {
-            }
-            Err(e) => {
-                println!("Error setting active frequency: {:?}", e);
-            }
-        };
-        match self.sim_frequency_connection.set(standby_name, standby_freq){
-            Ok(_e) => {
-            }
-            Err(e) => {
-                println!("Error setting standby frequency: {:?}", e);
-            }
-        };
-
+        self.sim_frequency_connection.set(active_name, active_freq)?;
+        self.sim_frequency_connection.set(standby_name, standby_freq)?;
 
         Ok(())
     }

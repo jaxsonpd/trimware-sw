@@ -175,7 +175,14 @@ impl SimWrapper {
 #[derive(Debug)]
 pub enum FrequencyName {
     Com1Active,
-    Com1Standby
+    Com1Standby,
+    Com2Active,
+    Com2Standby,
+    Nav1Active,
+    Nav1Standby,
+    Nav2Active,
+    Nav2Standby,
+    XPDR,
 }
 
 impl FrequencyName {
@@ -183,8 +190,31 @@ impl FrequencyName {
     fn as_event(&self) -> String {
         match self {
             FrequencyName::Com1Active => "COM_RADIO_SET_HZ".to_string(),
-            FrequencyName::Com1Standby => "COM_STBY_RADIO_SET_HZ".to_string()
+            FrequencyName::Com1Standby => "COM_STBY_RADIO_SET_HZ".to_string(),
+            FrequencyName::Com2Active => "COM2_RADIO_SET_HZ".to_string(),
+            FrequencyName::Com2Standby => "COM2_STBY_RADIO_SET_HZ".to_string(),
+            FrequencyName::Nav1Active => "NAV1_RADIO_SET_HZ".to_string(),
+            FrequencyName::Nav1Standby => "NAV1_STBY_SET_HZ".to_string(),
+            FrequencyName::Nav2Active => "NAV2_RADIO_SET_HZ".to_string(),
+            FrequencyName::Nav2Standby => "NAV2_STBY_SET_HZ".to_string(),
+            FrequencyName::XPDR => "XPNDR_SET".to_string()
         }
+    }
+
+    /// Get all of the enum
+    pub fn all() -> &'static [FrequencyName] {
+        use FrequencyName::*;
+        &[
+            Com1Active,
+            Com1Standby,
+            Com2Active,
+            Com2Standby,
+            Nav1Active,
+            Nav1Standby,
+            Nav2Active,
+            Nav2Standby,
+            XPDR,
+        ]
     }
 }
 
@@ -198,8 +228,10 @@ impl SimFreq {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let data_objects: Vec<Box<dyn SimDataObject>> = vec![Box::new(FrequencyData{com1_active: 118.000, com1_standby:118.000})];
         let mut wrapper = SimWrapper::new("Frequency Communication".to_string(), data_objects)?;
-        wrapper.register_event("COM_RADIO_SET_HZ".to_string())?;
-        wrapper.register_event("COM_STBY_RADIO_SET_HZ".to_string())?;
+        
+        for event_name in FrequencyName::all() {
+            wrapper.register_event(event_name.as_event())?;
+        }
 
         Ok(SimFreq { wrapper: wrapper })
     }
