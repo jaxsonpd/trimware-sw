@@ -2,22 +2,32 @@ use std::{error::Error};
 
 use custom_can_protocol::{Packet, PacketHandler};
 
-use crate::msfs_connect::MSFSRadioDevices;
+/// The possible radio devices that can be accessed
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum RadioDevices {
+    COM1,
+    COM2,
+    NAV1,
+    NAV2,
+    DME,
+    ADF,
+    XPDR,
+}
 
 /// Handle the selection of radio devices
 pub struct DeviceSelectHandler {
-    selected_device: MSFSRadioDevices,
+    selected_device: RadioDevices,
 }
 
 
-pub fn convert_to_device(number: u8) -> MSFSRadioDevices {
+pub fn convert_to_device(number: u8) -> RadioDevices {
     match number {
-        0 => MSFSRadioDevices::COM1,
-        1 => MSFSRadioDevices::COM2,
-        2 => MSFSRadioDevices::NAV1,
-        3 => MSFSRadioDevices::NAV2,
-        6 => MSFSRadioDevices::XPDR,
-        _ => MSFSRadioDevices::COM1,
+        0 => RadioDevices::COM1,
+        1 => RadioDevices::COM2,
+        2 => RadioDevices::NAV1,
+        3 => RadioDevices::NAV2,
+        6 => RadioDevices::XPDR,
+        _ => RadioDevices::COM1,
     }
 }
 
@@ -25,11 +35,11 @@ pub fn convert_to_device(number: u8) -> MSFSRadioDevices {
 impl DeviceSelectHandler {
     pub fn new() -> Self {
         DeviceSelectHandler {
-            selected_device: MSFSRadioDevices::COM1,
+            selected_device: RadioDevices::COM1,
         }
     }
 
-    pub fn get_selected_device(&self) -> MSFSRadioDevices {
+    pub fn get_selected_device(&self) -> RadioDevices {
         self.selected_device
     }
 
@@ -43,11 +53,11 @@ impl PacketHandler for DeviceSelectHandler {
         let packet_device = packet.payload[0];
 
         match packet_device {
-            0 => self.selected_device = MSFSRadioDevices::COM1,
-            1 => self.selected_device = MSFSRadioDevices::COM2,
-            2 => self.selected_device = MSFSRadioDevices::NAV1,
-            3 => self.selected_device = MSFSRadioDevices::NAV2,
-            6 => self.selected_device = MSFSRadioDevices::XPDR,
+            0 => self.selected_device = RadioDevices::COM1,
+            1 => self.selected_device = RadioDevices::COM2,
+            2 => self.selected_device = RadioDevices::NAV1,
+            3 => self.selected_device = RadioDevices::NAV2,
+            6 => self.selected_device = RadioDevices::XPDR,
             _ => println!("Unknown device: {}", packet_device),
         }
 

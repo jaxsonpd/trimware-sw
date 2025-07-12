@@ -2,7 +2,7 @@
 /// 
 /// Author: Jack Duignan (JackpDuignan@gmail.com)
 
-use msfs::{sim_connect::{self, data_definition, Period, SimConnect}, sys::{self, SIMCONNECT_OBJECT_ID, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_RECV_SIMOBJECT_DATA}};
+use msfs::{sim_connect::{self, data_definition, Period, SimConnect, SimConnectRecv}, sys::{self, SIMCONNECT_OBJECT_ID, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_RECV_SIMOBJECT_DATA}};
 
 use core::{error, num};
 use std::{collections::{hash_map, HashMap}, error::Error, f32::consts::E, ops::Deref, pin::Pin};
@@ -92,12 +92,25 @@ impl SimWrapper {
     /// name - the name of the sim connection
     /// data_objects - the objects to fetch data from
     pub fn new(name: String, data_objects: Vec<Box<dyn SimDataObject>>) -> Result<Self, Box<dyn std::error::Error>> {
-        let sim = match SimConnect::open(name.as_str(), | _sim, _recv | {} ) {
+        let mut sim = match SimConnect::open(name.as_str(), move | _sim, _recv | {
+            match _recv {
+                SimConnectRecv::SimObjectData(event) => match event.dwRequestID {
+                    0 => {
+                        println!("{:?}", event.into::<FrequencyData>(_sim).unwrap());
+                    }
+                    _ => {}
+                },
+                _ => println!("{:?}", _recv),
+            }
+        } ) {
                 Ok(sim) => sim,
                 Err(e) => {
                     return Err(Box::new(e));
                 }
             };
+
+        let result: Result<(), msfs::sim_connect::HResult> = sim.request_data_on_sim_object::<FrequencyData>(1 as u32, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame);
+        print!("result {:?}", result);
 
         Ok(SimWrapper { 
             sim_object: sim,
@@ -243,6 +256,7 @@ mod test {
     #[test]
     fn test_SimFreq_set() {
         let mut freq = SimFreq::new().expect("Check that the sim is open");
-        freq.set(FrequencyName::Com1Active, 120000).unwrap();
+        std::thread::sleep(std::time::Duration::from_secs(5));
+        freq.set(FrequencyName::Com1Standby, 129000000).expect("bad errpr");
     }
 }
