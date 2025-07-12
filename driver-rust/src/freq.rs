@@ -1,30 +1,35 @@
 use std::error::Error;
-use std::cell::RefCell;
 
 use crate::sim_wrap::{FrequencyName, SimFreq};
-use crate::device_select::{DeviceSelectHandler, convert_to_device, RadioDevices};
+use crate::device_select::{convert_to_device, RadioDevices};
 
 use custom_can_protocol::{Packet, PacketHandler};
 
-pub struct FreqHandler<'a> {
+pub struct FreqHandler {
     sim_frequency_connection: SimFreq,
-    device_select_handler: &'a RefCell<DeviceSelectHandler>,
 }
 
-impl<'a> FreqHandler<'a> {
-    pub fn new(device_select_handler: &'a RefCell<DeviceSelectHandler>) -> Self {
+impl FreqHandler {
+    pub fn new() -> Self {
         
         let sim_frequency_connection = SimFreq::new()
             .expect("Failed to connect to simulator try running the program again.");
         
         FreqHandler {
-            sim_frequency_connection: sim_frequency_connection,
-            device_select_handler: device_select_handler
+            sim_frequency_connection: sim_frequency_connection
         }
     }
 
-    pub fn get_freq(&mut self) -> Result<u64, Box<dyn Error>> {
-        Ok(1)
+    /// Check for frequency updates from the simulator
+    /// 
+    /// # Returns
+    /// a vector of packets to send with the updated frequency data
+    pub fn check_for_freq_updates(&mut self) -> Option<Vec<Packet>> {
+        if let Some(data) = self.sim_frequency_connection.get_freq_update() {
+            return None;
+        }
+
+        None
     }
 }
 
@@ -43,7 +48,7 @@ fn u32_to_bcd16(value: u32) -> u32 {
     bcd
 }
 
-impl PacketHandler for FreqHandler<'_> {
+impl PacketHandler for FreqHandler {
     fn handle_packet(&mut self, packet: &Packet) -> Result<(), Box<dyn Error>> {
         let radio_type = convert_to_device(packet.payload[0]);
 

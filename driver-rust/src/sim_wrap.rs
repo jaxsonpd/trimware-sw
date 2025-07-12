@@ -2,11 +2,10 @@
 /// 
 /// Author: Jack Duignan (JackpDuignan@gmail.com)
 
-use msfs::{sim_connect::{self, data_definition, Period, SimConnect, SimConnectRecv}, sys::{self, SIMCONNECT_OBJECT_ID, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_RECV_SIMOBJECT_DATA}};
-
-use core::{error, num};
-use std::{collections::{hash_map, HashMap}, error::Error, f32::consts::E, ops::Deref, pin::Pin};
+use std::{any::Any, collections::HashMap, error::Error, pin::Pin, sync::mpsc::{channel, Receiver}};
 use std::fmt::Debug;
+
+use msfs::{sim_connect::{self, data_definition, DataDefinition, Period, SimConnect, SimConnectRecv}, sys::{self, SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_RECV_SIMOBJECT_DATA}};
 
 /// Hold sim events and their ids for later use 
 #[derive(Debug)]
@@ -38,7 +37,7 @@ trait SimDataObject: Debug {
     /// id - the id of the request
     /// 
     /// returns an error if it cannot register the request
-    fn register_request(&self, sim: &mut Pin<Box<SimConnect<'static>>>, id: u32) -> Result<(), msfs::sim_connect::HResult>;
+    // fn register_request(&self, sim: &mut Pin<Box<SimConnect<'static>>>, id: u32) -> Result<(), msfs::sim_connect::HResult>;
 
     /// Get event data from the sim
     /// 
@@ -46,44 +45,51 @@ trait SimDataObject: Debug {
     /// event - the event to fetch
     /// 
     /// returns an error if it cannot get the data
-    fn get_event_data(&self, sim: &mut Pin<Box<SimConnect<'static>>>, event: &SIMCONNECT_RECV_SIMOBJECT_DATA) -> Option<Box<dyn SimDataObject>>;
+    fn get_event_data(&self, sim: &mut msfs::sim_connect::SimConnect<'_>, event: &SIMCONNECT_RECV_SIMOBJECT_DATA) -> Option<Box<dyn SimDataObject>>;
+
+    fn as_any(&self) -> &dyn Any;
 }
 
 
 #[data_definition]
 #[derive(Debug, Clone)]
-struct FrequencyData {
-    #[name = "COM STANDBY FREQUENCY:1"]
-    #[unit = "MHz"]
-    com1_standby: f64,
+pub struct FrequencyData {
     #[name = "COM ACTIVE FREQUENCY:1"]
     #[unit = "MHz"]
     com1_active: f64,
+    #[name = "COM STANDBY FREQUENCY:1"]
+    #[unit = "MHz"]
+    com1_standby: f64,
 }
 
 impl SimDataObject for FrequencyData {
-    fn register_request(&self, sim: &mut Pin<Box<SimConnect<'static>>>, id: u32) -> Result<(), msfs::sim_connect::HResult> {
-        sim.request_data_on_sim_object::<FrequencyData>(id, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame);
+    // fn register_request(&self, sim: &mut Pin<Box<SimConnect<'static>>>, id: u32) -> Result<(), msfs::sim_connect::HResult> {
+    //     sim.request_data_on_sim_object::<FrequencyData>(id, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     fn get_event_data(
         &self,
-        sim: &mut Pin<Box<SimConnect<'static>>>,
+        sim: &mut msfs::sim_connect::SimConnect<'_>,
         event: &SIMCONNECT_RECV_SIMOBJECT_DATA
     ) -> Option<Box<dyn SimDataObject>> {
         event
             .into::<FrequencyData>(sim)
             .map(|data| Box::new(data.clone()) as Box<dyn SimDataObject>)
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 #[derive(Debug)]
 pub struct SimWrapper {
     sim_object: Pin<Box<sim_connect::SimConnect<'static>>>,
-    data_objects: Vec<Box<dyn SimDataObject>>,
-    event_table: EventIdTable
+    // data_objects: Vec<Box<dyn SimDataObject>>,
+    event_table: EventIdTable,
+    data_rx: Receiver<Box<dyn SimDataObject>>
 }
 
 impl SimWrapper {
@@ -91,16 +97,18 @@ impl SimWrapper {
     /// 
     /// name - the name of the sim connection
     /// data_objects - the objects to fetch data from
-    pub fn new(name: String, data_objects: Vec<Box<dyn SimDataObject>>) -> Result<Self, Box<dyn std::error::Error>> {
-        let mut sim = match SimConnect::open(name.as_str(), move | _sim, _recv | {
-            match _recv {
-                SimConnectRecv::SimObjectData(event) => match event.dwRequestID {
-                    0 => {
-                        println!("{:?}", event.into::<FrequencyData>(_sim).unwrap());
+    fn new(name: String, data_objects: Vec<Box<dyn SimDataObject>>) -> Result<Self, Box<dyn std::error::Error>> {
+        let (data_tx, data_rx) = channel::<Box<dyn SimDataObject>>();
+
+        let sim = match SimConnect::open(name.as_str(), move | sim: &mut SimConnect<'_>, recv: SimConnectRecv | {
+            match recv {
+                SimConnectRecv::SimObjectData(event) => {
+                    match data_objects[event.dwRequestID as usize].get_event_data(sim, event) {
+                        Some(data) => {let _ = data_tx.send(data);}
+                        None => {return;}
                     }
-                    _ => {}
                 },
-                _ => println!("{:?}", _recv),
+                _ => println!("{:?}", recv),
             }
         } ) {
                 Ok(sim) => sim,
@@ -109,14 +117,36 @@ impl SimWrapper {
                 }
             };
 
-        let result: Result<(), msfs::sim_connect::HResult> = sim.request_data_on_sim_object::<FrequencyData>(1 as u32, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame);
-        print!("result {:?}", result);
-
         Ok(SimWrapper { 
             sim_object: sim,
-            data_objects: data_objects,
+            data_rx: data_rx,
             event_table: EventIdTable::new()
         })
+    }
+
+    /// Register a data request to get data from
+    pub fn register_data_request<T: DataDefinition>(&mut self, id: u32) -> Result<(), Box<dyn Error>> {
+        self.sim_object.request_data_on_sim_object::<T>(id, SIMCONNECT_OBJECT_ID_USER, Period::SimFrame)?;
+
+        Ok(())
+    }
+
+    /// Poll the simulator for more data, this function doesn't return data
+    /// use get_data for this
+    pub fn poll_sim(&mut self) -> Result<(), Box<dyn Error>>{
+        self.sim_object.call_dispatch()?;
+        Ok(())
+    }
+
+    /// Get one new bit of data from the simulator
+    /// 
+    /// # Returns
+    /// data if available
+    pub fn get_data(&mut self) -> Option<Box<dyn SimDataObject>>{
+        match self.data_rx.try_recv() {
+            Ok(received_data) => {return Some(received_data)},
+            Err(e) => {return None;}
+        }
     }
 
     /// Register a new event with the simulator
@@ -228,6 +258,8 @@ impl SimFreq {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         let data_objects: Vec<Box<dyn SimDataObject>> = vec![Box::new(FrequencyData{com1_active: 118.000, com1_standby:118.000})];
         let mut wrapper = SimWrapper::new("Frequency Communication".to_string(), data_objects)?;
+
+        wrapper.register_data_request::<FrequencyData>(0)?;
         
         for event_name in FrequencyName::all() {
             wrapper.register_event(event_name.as_event())?;
@@ -245,10 +277,32 @@ impl SimFreq {
 
         Ok(())
     }
+
+    /// Get frequency updates if they have occured
+    /// 
+    /// # Returns
+    /// A frequency update if it has occured
+    pub fn get_freq_update(&mut self) -> Option<FrequencyData> {
+        self.wrapper.poll_sim();
+
+        match self.wrapper.get_data() {
+            Some(data) => {
+                if let Some(freq) = data.as_any().downcast_ref::<FrequencyData>() {
+                    println!("{:?}", freq);
+                    return Some(freq.clone());
+                }
+            },
+            None => return None
+        }
+
+        None
+    }
 }
 
 
 mod test {
+    use std::time::{Instant, Duration};
+
     use super::*;
 
     #[test]
@@ -289,6 +343,22 @@ mod test {
     fn test_SimFreq_set() {
         let mut freq = SimFreq::new().expect("Check that the sim is open");
         std::thread::sleep(std::time::Duration::from_secs(5));
-        freq.set(FrequencyName::Com1Standby, 129000000).expect("bad errpr");
+        freq.set(FrequencyName::Com1Standby, 129000000).expect("bad error");
+    }
+
+    // #[cfg(feature = "sim_tests")]
+    #[test]
+    fn test_SimWrapper_poll() {
+        let data_objects: Vec<Box<dyn SimDataObject>> = vec![Box::new(FrequencyData{com1_active: 118.000, com1_standby:118.000})];
+        let mut wrapper = SimWrapper::new("Frequency Communication".to_string(), data_objects).expect("Failed to open connection");
+
+        let start_time = std::time::SystemTime::now();
+
+        let duration = Duration::from_secs(5);
+        let start_time = Instant::now();
+
+        while Instant::now().duration_since(start_time) < duration {
+            wrapper.poll_sim().expect("Failed to poll");
+        }
     }
 }

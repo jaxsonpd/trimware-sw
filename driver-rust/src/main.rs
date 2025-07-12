@@ -44,23 +44,21 @@ fn main() {
         }
     };
 
-    let device_select_handler = RefCell::new(DeviceSelectHandler::new());
-    let mut freq_packet_handler = FreqHandler::new(&device_select_handler);
+    let mut device_select_handler = DeviceSelectHandler::new();
+    let mut freq_packet_handler = FreqHandler::new();
 
     println!("Reading from serial port: {}", port_name);
 
     loop {
+        freq_packet_handler.check_for_freq_updates();
         if port.bytes_to_read().unwrap() > 10 {
             match Packet::read_from_stream(&mut port) {
                 Ok(packet) => {
                     println!("{:?}", packet);
                     if packet.packet_ident == freq_packet_handler.get_packet_id() {
                         freq_packet_handler.handle_packet(&packet).unwrap();
-                    } else if packet.packet_ident == device_select_handler.borrow().get_packet_id() {
-                        device_select_handler
-                            .borrow_mut()
-                            .handle_packet(&packet)
-                            .unwrap();
+                    } else if packet.packet_ident == device_select_handler.get_packet_id() {
+                        device_select_handler.handle_packet(&packet).unwrap();
                     }
                 }
                 Err(e) => {
@@ -68,6 +66,5 @@ fn main() {
                 }
             }
         }
-        freq_packet_handler.get_freq();
     }
 }
