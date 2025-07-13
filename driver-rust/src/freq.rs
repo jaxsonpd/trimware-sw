@@ -1,12 +1,17 @@
 use std::error::Error;
 
 use crate::sim_freq::{RadioDevices, RadioOptions, SimFreq};
-use crate::device_select::{convert_to_device};
+use crate::device_select::{convert_from_device, convert_to_device};
 
 use custom_can_protocol::{Packet, PacketHandler};
 
 pub struct FreqHandler {
     sim_frequency_connection: SimFreq,
+}
+
+fn round_to_nearest_power_of_5(n: u32, power: u32) -> u32 {
+    let multiple = 5u32.pow(power);
+    ((n + multiple / 2) / multiple) * multiple
 }
 
 impl FreqHandler {
@@ -25,9 +30,28 @@ impl FreqHandler {
     /// # Returns
     /// a vector of packets to send with the updated frequency data
     pub fn check_for_freq_updates(&mut self) -> Option<Vec<Packet>> {
+        let mut packets: Vec<Packet> = Vec::new();
+
         if let Some(data) = self.sim_frequency_connection.get_freq_update() {
-            println!("{:?}", data);
-            return None;
+            if data.radio_type == RadioDevices::XPDR {
+                return None;
+            } else {
+                let mut payload:Vec<u8> = Vec::new();
+                let active_freq = round_to_nearest_power_of_5((*data.frequencies.get(&RadioOptions::ACTIVE).unwrap() * 1e3) as u32, 1);
+                let standby_freq = round_to_nearest_power_of_5((*data.frequencies.get(&RadioOptions::STANDBY).unwrap() * 1e3) as u32, 1);
+                payload.push(convert_from_device(data.radio_type));
+                payload.push((standby_freq >> 24) as u8);
+                payload.push((standby_freq >> 16) as u8);
+                payload.push((standby_freq >> 8) as u8);
+                payload.push((standby_freq >> 0) as u8);
+                payload.push((active_freq >> 24) as u8);
+                payload.push((active_freq >> 16) as u8);
+                payload.push((active_freq >> 8) as u8);
+                payload.push((active_freq >> 0) as u8);
+                packets.push(Packet::new(1, payload));
+
+                return Some(packets);
+            }
         }
 
         None

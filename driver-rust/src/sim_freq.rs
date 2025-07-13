@@ -255,8 +255,8 @@ impl FrequencyName {
 /// scope
 #[derive(Debug)]
 pub struct RadioData {
-    radio_type: RadioDevices,
-    frequencies: HashMap<RadioOptions, f64>
+    pub radio_type: RadioDevices,
+    pub frequencies: HashMap<RadioOptions, f64>
 }
 
 

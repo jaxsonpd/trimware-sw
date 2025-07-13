@@ -21,6 +21,18 @@ pub fn convert_to_device(number: u8) -> RadioDevices {
     }
 }
 
+/// Convert from a device back to a number
+pub fn convert_from_device(device: RadioDevices) -> u8 {
+    match device {
+        RadioDevices::COM1 => 0,
+        RadioDevices::COM2 => 1,
+        RadioDevices::NAV1 => 2,
+        RadioDevices::NAV2 => 3,
+        RadioDevices::XPDR => 4,
+        _ => 50,
+    }
+}
+
 
 impl DeviceSelectHandler {
     pub fn new() -> Self {
@@ -34,7 +46,7 @@ impl DeviceSelectHandler {
     }
 
     pub fn compose_request_device_packet(&self) -> Packet {
-        Packet::new(self.get_packet_id(), Vec::new(), Vec::new())
+        Packet::new(self.get_packet_id(), Vec::new())
     }
 }
 

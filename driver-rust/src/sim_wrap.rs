@@ -54,7 +54,6 @@ pub trait SimDataObject: Debug {
 #[derive(Debug)]
 pub struct SimWrapper {
     sim_object: Pin<Box<sim_connect::SimConnect<'static>>>,
-    // data_objects: Vec<Box<dyn SimDataObject>>,
     event_table: EventIdTable,
     data_rx: Receiver<Box<dyn SimDataObject>>
 }
@@ -68,7 +67,6 @@ impl SimWrapper {
         let (data_tx, data_rx) = channel::<Box<dyn SimDataObject>>();
 
         let sim = match SimConnect::open(name.as_str(), move | sim: &mut SimConnect<'_>, recv: SimConnectRecv | {
-            println!("{:?}", recv);
             match recv {
                 SimConnectRecv::SimObjectData(event) => {
                     match data_objects[event.dwRequestID as usize].get_event_data(sim, event) {
@@ -112,7 +110,9 @@ impl SimWrapper {
     /// data if available
     pub fn get_data(&mut self) -> Option<Box<dyn SimDataObject>>{
         match self.data_rx.try_recv() {
-            Ok(received_data) => {return Some(received_data)},
+            Ok(received_data) => {
+                return Some(received_data)
+            },
             Err(_) => {return None;}
         }
     }
