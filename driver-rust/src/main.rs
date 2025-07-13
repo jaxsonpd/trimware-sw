@@ -1,14 +1,12 @@
 use std::time::Duration;
 
-use std::cell::RefCell;
-
 use serialport::SerialPort;
 
 use custom_can_protocol::{Packet, PacketHandler};
 
-mod msfs_connect;
-
 mod sim_wrap;
+
+mod sim_freq;
 
 mod device_select;
 
@@ -17,6 +15,7 @@ use device_select::DeviceSelectHandler;
 mod freq;
 
 use freq::FreqHandler;
+
 
 /// Open the serial port
 ///

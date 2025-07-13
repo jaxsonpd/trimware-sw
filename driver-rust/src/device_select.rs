@@ -2,24 +2,14 @@ use std::{error::Error};
 
 use custom_can_protocol::{Packet, PacketHandler};
 
-/// The possible radio devices that can be accessed
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum RadioDevices {
-    COM1,
-    COM2,
-    NAV1,
-    NAV2,
-    DME,
-    ADF,
-    XPDR,
-}
+use crate::sim_freq::RadioDevices;
 
 /// Handle the selection of radio devices
 pub struct DeviceSelectHandler {
     selected_device: RadioDevices,
 }
 
-
+/// Convert from a device select packet number to radio devices
 pub fn convert_to_device(number: u8) -> RadioDevices {
     match number {
         0 => RadioDevices::COM1,

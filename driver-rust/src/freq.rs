@@ -1,7 +1,7 @@
 use std::error::Error;
 
-use crate::sim_wrap::{FrequencyName, SimFreq};
-use crate::device_select::{convert_to_device, RadioDevices};
+use crate::sim_freq::{RadioDevices, RadioOptions, SimFreq};
+use crate::device_select::{convert_to_device};
 
 use custom_can_protocol::{Packet, PacketHandler};
 
@@ -26,6 +26,7 @@ impl FreqHandler {
     /// a vector of packets to send with the updated frequency data
     pub fn check_for_freq_updates(&mut self) -> Option<Vec<Packet>> {
         if let Some(data) = self.sim_frequency_connection.get_freq_update() {
+            println!("{:?}", data);
             return None;
         }
 
@@ -65,46 +66,18 @@ impl PacketHandler for FreqHandler {
         if radio_type == RadioDevices::XPDR {
             let xpdr_value = active_freq;
             println!("XPDR value set {}", xpdr_value);
+            let xpdr_value = u32_to_bcd16(active_freq);
+            self.sim_frequency_connection.set(RadioDevices::XPDR, RadioOptions::CODE, xpdr_value)?;
+            return Ok(());
         } else {
             active_freq *= 1000;
             standby_freq *= 1000;
             println!("Set frequency Active: {}, Standby: {} to device {:?}", active_freq/1000, standby_freq/1000, radio_type);
-
-        }
-
-        let active_name: FrequencyName;
-        let standby_name: FrequencyName;
-
-        match radio_type {
-            RadioDevices::COM1 => {
-                active_name = FrequencyName::Com1Active;
-                standby_name = FrequencyName::Com1Standby;
-            }
-            RadioDevices::COM2 => {
-                active_name = FrequencyName::Com2Active;
-                standby_name = FrequencyName::Com2Standby;
-            }
-            RadioDevices::NAV1 => {
-                active_name = FrequencyName::Nav1Active;
-                standby_name = FrequencyName::Nav1Standby;
-            }
-            RadioDevices::NAV2 => {
-                active_name = FrequencyName::Nav2Active;
-                standby_name = FrequencyName::Nav2Standby;
-            }
-            RadioDevices::XPDR => {
-                let xpdr_value = u32_to_bcd16(active_freq);
-                self.sim_frequency_connection.set(FrequencyName::XPDR, xpdr_value)?;
-                return Ok(());
-            }
-            _ => {
-                return Ok(());
-            }
         }
             
 
-        self.sim_frequency_connection.set(active_name, active_freq)?;
-        self.sim_frequency_connection.set(standby_name, standby_freq)?;
+        self.sim_frequency_connection.set(radio_type, RadioOptions::ACTIVE, active_freq)?;
+        self.sim_frequency_connection.set(radio_type, RadioOptions::STANDBY, standby_freq)?;
 
         Ok(())
     }
