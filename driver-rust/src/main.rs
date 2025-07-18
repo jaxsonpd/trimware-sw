@@ -1,6 +1,6 @@
-use std::{thread, time::Duration};
+use std::{error::Error, thread, time::Duration};
 
-use serialport::SerialPort;
+use serialport::{SerialPort, SerialPortBuilder, SerialPortType};
 
 use custom_can_protocol::{Packet, PacketHandler};
 
@@ -15,6 +15,37 @@ use device_select::DeviceSelectHandler;
 mod freq;
 
 use freq::FreqHandler;
+
+/// Find available devices that could be interacted with
+/// 
+/// returns a vector of port name strings that match the give pids
+fn get_available_ports(accepted_vid_pid: Vec<(u16, u16)>) -> Option<Vec<String>> {
+    let ports = match serialport::available_ports() {
+        Ok(ports) => ports,
+        Err(_) => return None,
+    };
+
+    let mut available_ports: Vec<String> = Vec::new();
+
+    for port in ports {
+        for (vid, pid) in &accepted_vid_pid {
+            match port.port_type {
+                SerialPortType::UsbPort(ref usb_info) => {
+                    if (usb_info.vid == *vid) && (usb_info.pid == *pid) {
+                        available_ports.push(port.port_name.clone());
+                    }   
+                }
+                _ => {break}
+            }
+        }
+    }
+
+    if available_ports.len() > 0 {
+        return Some(available_ports);
+    }
+
+    return None
+}
 
 
 /// Open the serial port
@@ -32,10 +63,19 @@ fn open_serial_port(
 }
 
 fn main() {
-    let port_name = "com9";
     let baud_rate = 115200;
+    let accepted_vid_pid = vec![(6790, 29987)];
+    let ports = match get_available_ports(accepted_vid_pid) {
+        Some(ports) => {
+            ports
+        }
+        None => {
+            eprintln!("No available devices");
+            return;
+        }
+    };
 
-    let mut port = match open_serial_port(port_name, baud_rate) {
+    let mut port = match open_serial_port(&ports[0], baud_rate) {
         Ok(port) => port,
         Err(e) => {
             eprintln!("Failed to open serial port: {}", e);
@@ -46,7 +86,7 @@ fn main() {
     let mut device_select_handler = DeviceSelectHandler::new();
     let mut freq_packet_handler = FreqHandler::new();
 
-    println!("Reading from serial port: {}", port_name);
+    println!("Reading from serial port: {}", &ports[0]);
 
     loop {
         if let Some(mut packets) = freq_packet_handler.check_for_freq_updates() {
