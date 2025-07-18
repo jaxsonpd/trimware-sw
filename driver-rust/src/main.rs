@@ -1,12 +1,12 @@
-use std::time::Duration;
-
-use std::cell::RefCell;
+use std::{thread, time::Duration};
 
 use serialport::SerialPort;
 
 use custom_can_protocol::{Packet, PacketHandler};
 
-mod msfs_connect;
+mod sim_wrap;
+
+mod sim_freq;
 
 mod device_select;
 
@@ -16,6 +16,7 @@ mod freq;
 
 use freq::FreqHandler;
 
+
 /// Open the serial port
 ///
 fn open_serial_port(
@@ -23,7 +24,7 @@ fn open_serial_port(
     baud_rate: u32,
 ) -> Result<Box<dyn SerialPort>, Box<dyn std::error::Error>> {
     let port = serialport::new(port_name, baud_rate)
-        .timeout(Duration::from_millis(1000))
+        .timeout(Duration::from_millis(1))
         .open()
         .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 
@@ -31,7 +32,7 @@ fn open_serial_port(
 }
 
 fn main() {
-    let port_name = "com3";
+    let port_name = "com9";
     let baud_rate = 115200;
 
     let mut port = match open_serial_port(port_name, baud_rate) {
@@ -42,38 +43,33 @@ fn main() {
         }
     };
 
-    let device_select_handler = RefCell::new(DeviceSelectHandler::new());
-    let mut freq_packet_handler = FreqHandler::new(&device_select_handler);
-
-    // let request = device_select_handler
-    //     .borrow_mut()
-    //     .compose_request_device_packet();
-    // let _ = request.write_to_stream(&mut port);
+    let mut device_select_handler = DeviceSelectHandler::new();
+    let mut freq_packet_handler = FreqHandler::new();
 
     println!("Reading from serial port: {}", port_name);
 
     loop {
-        match Packet::read_from_stream(&mut port) {
-            Ok(packet) => {
-                println!("{:?}", packet);
-                if packet.packet_ident == freq_packet_handler.get_packet_id() {
-                    freq_packet_handler.handle_packet(&packet).unwrap();
-                } else if packet.packet_ident == device_select_handler.borrow().get_packet_id() {
-                    device_select_handler
-                        .borrow_mut()
-                        .handle_packet(&packet)
-                        .unwrap();
-                }
-            }
-            Err(e) => {
-                eprintln!("Error reading packet: {:?}", e);
+        if let Some(mut packets) = freq_packet_handler.check_for_freq_updates() {
+            println!("Sending {:?}", packets);
+            for packet in packets.iter_mut() {
+                packet.compile();
+                packet.write_to_stream(&mut port);
+
             }
         }
-        freq_packet_handler.get_freq();
-
-        // let mut device_get_packet = device_select_handler.borrow().compose_request_device_packet();
-        // device_get_packet.write_to_stream(&mut port);
-
-        // std::thread::sleep(std::time::Duration::from_millis(100));
+        if port.bytes_to_read().unwrap() > 10 {
+            match Packet::read_from_stream(&mut port) {
+                Ok(packet) => {
+                    if packet.packet_ident == freq_packet_handler.get_packet_id() {
+                        freq_packet_handler.handle_packet(&packet).unwrap();
+                    } else if packet.packet_ident == device_select_handler.get_packet_id() {
+                        device_select_handler.handle_packet(&packet).unwrap();
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error reading packet: {:?}", e);
+                }
+            }
+        }
     }
 }
