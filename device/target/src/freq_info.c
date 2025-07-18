@@ -24,7 +24,7 @@
 #define MAX_XPDR_VALUE 7777
 
 #define MHz_STEP 1
-#define KHz_STEP 25
+#define KHz_STEP 5
 #define NAV_KHz_STEP 50
 
 #define MHz_OFFSET 1000
@@ -97,9 +97,6 @@ freq_t freq_info_get(freqType_t freqType, freqOption_t freqOption) {
 
     return 0;
 }
-
-#include <stdio.h>
-#include <stdint.h>
 
 uint32_t increment_octal(uint32_t octal, uint32_t increment, uint32_t second_msd_increment) {
     uint32_t decimal = 0, power = 1, temp = octal;
