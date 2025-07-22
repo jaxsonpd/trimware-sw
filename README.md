@@ -1,8 +1,17 @@
-# flight-sim-software
+# Trimware Software
 
-This repository contains the software that is used to run on the flight simulator hardware developed and stored in jaxsonpd/flight-sim-hardware. The setup for this project is detailed in [setup](SETUP.md)
+This repository contains the software for the trimware flight simulator controller products developed and stored in jaxsonpd/trimware-hw. These devices use AVR MCUs the setup for which is detailed in [setup](SETUP.md). The project uses two main programs, one running on the MCU which takes in sensor data and sends it to the host PC and the other which handles communication from the MCU to the simulator using the sim connect API. 
 
-## Device Types
+Current Devices:
+
+- Radio Pannel, This allows control over various radios in flight simulator aircraft with both display and input.
+
+Future Devices:
+
+- Switch Panel, A selection of key switches including lights, electrical and flight systems.
+- Auto Pilot Panel
+
+## Devices
 
 ### Aviation Com, Nav and Transponder Radio
 
@@ -14,9 +23,9 @@ Editing of a range of frequencies availible on the aircraft. This includes:
 - DME
 - XPDR (Transponder)
 
-Changes are made using dual quadrature encoders and data is transmitted using a custom packet format over RS232. A custom PCB is used to house the quadrature encoders, rotary switch and 12 7-segment displays this can be found in [Flight-Sim-Hardware](https://github.com/jaxsonpd/flight-sim-hardware).
+Changes are made using dual quadrature encoders and data is transmitted using a custom packet format over RS232. A custom PCB is used to house the quadrature encoders, rotary switch and 12 7-segment displays this can be found in [trimware-hw](https://github.com/jaxsonpd/trimware-hw).
 
-Here is an image of the input section of the project showing an active frequency of 118.00 MHz and a standby frequency of 108.05 MHz.
+Here is an image of a prototype radio panel showing an active NAV 1 frequency of 118.00 MHz and a standby frequency of 108.05 MHz.
 
 ![Input Device for Radio](docs/photos/IMG_6265.jpeg)
 
