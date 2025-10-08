@@ -50,27 +50,26 @@ const uint8_t HexTo7Seg[40] =
   0x5E, // d
   0x79, // E
   0x71, // F
-  0x6F, // g
-  0x3D, // G
-  0x74, // h
+  0x3D, // g
   0x76, // H
   0x05, // i
-  0x06, // I
   0x0D, // j
-  0x30, // l
+  0x36, // k
   0x38, // L
+  0x00, // m
   0x54, // n
-  0x37, // N
   0x5C, // o
-  0x3F, // O
   0x73, // P
   0x67, // q
   0x50, // r
   0x6D, // S
-  0x78, // t
-  0x1C, // u
+  0x70, // t
   0x3E, // U
+  0x1C, // u
+  0x00, // w
+  0x00, // x
   0x66, // y
+  0x6D, // z
   0x08, // _
   0x40, // -
   0x01  // Overscore
@@ -185,14 +184,12 @@ int tm1638_write(struct TM1638Device* device, uint32_t value, char* format) {
     uint8_t digits[6] = { 0 };
     if ((char)(format[1]) == 'x') {
         // Hex
-
         for (uint8_t i = 6; i > 0; i--) {
             digits[i - 1] = value % 16;
             value /= 16;
         }
-
-
     } else {
+        // decimal
         for (uint8_t i = 6; i > 0; i--) {
             digits[i - 1] = value % 10;
             value /= 10;
@@ -226,4 +223,22 @@ void tm1638_set_brightness(struct TM1638Device* device, uint8_t brightness) {
     send_start(*device);
     send_byte(*device, CONTROL_BYTE | DISP_ON_BYTE | device->_brightness);
     send_stop(*device);
+}
+
+void tm1638_write_string(struct TM1638Device* device, char* string) {
+    uint8_t i = 0;
+    uint8_t values[6] = {0};
+
+    while (string[i] != 0) {
+        if (string[i] >= 'A' && string[i] <= 'Z') {
+            values[i] = ((uint8_t)string[i] - 65) + 10;
+        } else if (string[i] >= '0' && string[i] <= '9') {
+            values[i] = (uint8_t)string[i] - 48;
+        } else {
+            tm1638_enable_digit(device, i, false);
+        }
+        i++;
+    }
+
+    tm1638_write_digits(device, 0, values, 6);
 }

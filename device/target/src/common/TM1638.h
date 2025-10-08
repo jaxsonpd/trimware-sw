@@ -69,7 +69,7 @@ int tm1638_write(struct TM1638Device* device, uint32_t value, char* format);
  * @brief Write digits to the display
  * @param device the device struct to use
  * @param startingDigit the starting digit to write to
- * @param values the values to write
+ * @param values the values to write which are encoded by hexto7seg 0-9 A-Z
  * @param valueLen the length of the values array
  *
  * @return 0 if successful
@@ -99,5 +99,12 @@ void tm1638_set_display_state(struct TM1638Device* device, bool state);
  */
 void tm1638_set_brightness(struct TM1638Device* device, uint8_t brightness);
 
+/**
+ * @brief Write a string to the display
+ * @param device the device struct to use
+ * @param text the text to write, cannot be longer then 6 chars spaces are blank
+ * 
+ */
+void tm1638_write_string(struct TM1638Device* device, char *string);
 
 #endif // TM1638_H
