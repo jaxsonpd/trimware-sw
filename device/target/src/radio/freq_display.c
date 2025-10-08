@@ -11,7 +11,7 @@
 
 #include "freq_display.h"
 
-#include "TM1637.h"
+#include "../common/TM1637.h"
 
 struct TM1637Device activeDisplay = {
     .name = "Active Display"

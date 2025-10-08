@@ -23,11 +23,11 @@
 #include "custom_can_protocol/packet_processing.h"
 #include "avr_extends/uptime.h"
 
-#include "pin.h"
+#include "radio/pin.h"
 
-#include "display_handler.h"
-#include "freq_handler.h"
-#include "device_select.h"
+#include "radio/display_handler.h"
+#include "radio/freq_handler.h"
+#include "radio/device_select.h"
 
 bool debug = true;
 

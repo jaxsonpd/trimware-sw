@@ -11,7 +11,7 @@
 
 #include "pin.h"
 
-#include "TM1638.h"
+#include "../common/TM1638.h"
 #include "freq_handler.h"
 #include "device_select.h"
 

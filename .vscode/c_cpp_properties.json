@@ -28,6 +28,24 @@
                 "-mmcu=atmega328p ",
                 "-c"
             ]
+        },
+        {
+            "name": "AVRNix",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/device/target/libs/avr-extends/**"
+            ],
+            "defines": [],
+            "compilerPath": "/run/current-system/sw/bin/avr-gcc",
+            "cStandard": "c11",
+            "cppStandard": "gnu++11",
+            "intelliSenseMode": "linux-gcc-x64",
+            "compilerArgs": [
+                "-Os ",
+                "-DF_CPU=16000000UL ",
+                "-mmcu=atmega328p ",
+                "-c"
+            ]
         }
     ],
     "version": 4
