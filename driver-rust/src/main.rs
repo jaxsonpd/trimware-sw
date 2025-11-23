@@ -64,7 +64,7 @@ fn open_serial_port(
 
 fn main() {
     let baud_rate = 115200;
-    let accepted_vid_pid = vec![(6790, 29987)];
+    let accepted_vid_pid = vec![(6790, 29987), (0x10C4, 0xEA60)];
     let ports = match get_available_ports(accepted_vid_pid) {
         Some(ports) => {
             ports
@@ -94,7 +94,6 @@ fn main() {
             for packet in packets.iter_mut() {
                 packet.compile();
                 packet.write_to_stream(&mut port);
-
             }
         }
         if port.bytes_to_read().unwrap() > 10 {
