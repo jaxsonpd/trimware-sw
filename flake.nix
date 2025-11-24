@@ -17,6 +17,8 @@
             avrdude
             ruby
             cmake
+            cargo
+            rustc
           ];
 
         #   shellHook = '''';
